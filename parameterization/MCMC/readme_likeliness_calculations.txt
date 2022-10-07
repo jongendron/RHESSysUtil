@@ -1,0 +1,20 @@
+-How Min calculates likeliness
+-
+-likeliness = probability density at certain point
+-	The point used in this case is average model output of a target variable withing a certain time range (avg[t])
+-	The probabily density function is assumed to be a normal (Gaussian) distribution, where ...
+-		mean = target variable value (defined by user)
+-		stddev = standard deviation of target variable (defined by user)
+-	For example the likeliness of average canopy height 50 m (model output) during [1990,2015] if average observed height and stddev during this time is 35 and 2.5 m respectively
+-		f(x=50,mu=35,stddev=2.5) = gaussian(...)
+-
+-1. get average value of model output target(s) within predesired time period
+-	targets: npp_gpp_ratio, height, psn_net, proj_lai
+-	time range: 1990 - 2018 by default (I intend to use later dates for vegetation stabilization such as (1979 + 1000):(2018 + 1000), which is when stability should occure (max height and stabile npp & gpp of mature veg)
+-2. Use calculate probability of this value in a ______ function
+-	uses Python function "scipy.stats.norm.pdf(avg[t], loc=target[t], scale=target_stddev[t])"
+-3. Multiply probabily associated with all targets to get single probability
+-	tdist = dist[t1] * dist[t2] ...
+-	This is the likeliness of this paramter set
+-	
+

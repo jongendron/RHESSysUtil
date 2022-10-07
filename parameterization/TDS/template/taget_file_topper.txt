@@ -1,0 +1,4 @@
+27871 num_stratum
+1 num_targets
+height
+

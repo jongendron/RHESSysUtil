@@ -1,0 +1,29 @@
+1	num_basin_files
+/data/hydro/users/jgendron/rhessys/rhessys_spinup_veg/rhessys/defs/basin_basin.def
+1	num_hillslope_files
+/data/hydro/users/jgendron/rhessys/rhessys_spinup_veg/rhessys/defs/hillslope_hillslope.def
+1	num_zone_files
+/data/hydro/users/jgendron/rhessys/rhessys_spinup_veg/rhessys/defs/zone_zone.def
+3	num_patch_files
+/data/hydro/users/jgendron/rhessys/rhessys_spinup_veg/rhessys/defs/8_silty-loam.def
+/data/hydro/users/jgendron/rhessys/rhessys_spinup_veg/rhessys/defs/9_loam.def
+/data/hydro/users/jgendron/rhessys/rhessys_spinup_veg/rhessys/defs/12_sandy-loam_v2.def
+3	num_landuse_files
+/data/hydro/users/jgendron/rhessys/rhessys_spinup_veg/rhessys/defs/landuse_agriculture.def
+/data/hydro/users/jgendron/rhessys/rhessys_spinup_veg/rhessys/defs/landuse_undeveloped.def
+/data/hydro/users/jgendron/rhessys/rhessys_spinup_veg/rhessys/defs/landuse_urban.def
+9	num_canopy_strata_files
+/data/hydro/users/jgendron/rhessys/rhessys_spinup_veg/rhessys/defs/stratum_deciduous.def
+/data/hydro/users/jgendron/rhessys/rhessys_spinup_veg/rhessys/defs/stratum_evergreen.def
+/data/hydro/users/jgendron/rhessys/rhessys_spinup_veg/rhessys/defs/stratum_grass.def
+/data/hydro/users/jgendron/rhessys/rhessys_spinup_veg/rhessys/defs/stratum_nonveg.def
+/data/hydro/users/jgendron/rhessys/rhessys_spinup_veg/rhessys/defs/stratum_shrub.def
+/data/hydro/users/jgendron/rhessys/rhessys_spinup_veg/rhessys/defs/stratum_underpine.def
+/data/hydro/users/jgendron/rhessys/rhessys_spinup_veg/rhessys/defs/stratum_underdecid.def
+/data/hydro/users/jgendron/rhessys/rhessys_spinup_veg/rhessys/defs/stratum_nonveg_under.def
+/data/hydro/users/jgendron/rhessys/rhessys_spinup_veg/rhessys/defs/stratum_water.def
+1	num_spinup_default_files
+/data/hydro/users/jgendron/rhessys/rhessys_spinup_veg/rhessys/spin/spinup.def
+1	num_base_stations
+/data/hydro/users/jgendron/rhessys/rhessys_spinup_veg/rhessys/clim/br_bs.base
+

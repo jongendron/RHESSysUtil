@@ -1,0 +1,9 @@
+3            num_stratum    
+1               num_targets    
+height         
+basin_ID        hill_ID         zone_ID         patch_ID        stratum_ID      height         
+1               410             15984           15984           46034           63.51          
+1               410             15983           15983           46033           51.57          
+1               410             16005           16005           46055           54.99          
+\ No newline at end of file
+
