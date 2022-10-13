@@ -10,64 +10,137 @@ import numpy as np
 import pandas as pd
 import ntpath as nt
 
-#%% Get RHESSys output filelist
-# Input directory
-# Input output scale (daily, monthly, yearly)
-# Input growth flag (True or False)
-# Output: Filelist with absolute path of thes files
+#%% Create Pandas DataFrame containing list RHESSys output files and filename identifiers
+## Files extracted from specified directory tree (parent path -> down)
 
-def create_filelist(Dir: str, Spat: str, Time: str, Growth: bool) -> list:
+def create_filelist(Path: str, Delim: str, ID_loc: list, inc_patn: list, ex_patn: list) -> pd.DataFrame:
     """
-    Create a list of RHESSys output files based on the specified 'Spat', 'Time', 
-    and `Growth` arguements for directory `Dir`.
+    Searches all files contained in subdirectories of `Path` to find only those that
+    contain all patterns specified in `inc_patn` and do not contain all patterns
+    specified in `ex_patn`. For each file found, keeps a running list of the the
+    following:\n
+    (1) Filename (fullpath)\n
+    (2) File identifiers specified by `Delim` and `ID_loc`.
+    
+    These running lists are then combined into a 2-dimensional Pandas Dataframe,
+    and rows are sorted by alpha-numerical order (based on `ID_loc` as columns).
 
     Parameters
     ----------
-    Dir : str
-        Directory from which to query for RHESSys output files.
+    Path : str
+        Path to top of directory tree that will be searched for files.
         
-    Spat : str
-        Spatial scale of RHESSys output files to query, including either:
-            (1) "basin", (2) "zone", (3) "hillslope", (4) "patch", (5) "stratum"
+    Delim : str
+        Deliminator used to split the filename and extract file identifiers (i.e. "_").
         
-    Time : str
-        Temporal scale of RHESSsy output files to query, including either:
-            (1) "daily", (2) "monthly", or (3) "yearly".
-            
-    Growth : bool
-        Flag that specifies whether or not to search for growth output files.
+    ID_loc : list
+        Index position of identifiers to extact from each file; each file is split into
+        a list of strings (each string is separated by `Delim`), and then list values
+        specified by `ID_loc` are extracted from this list. If the string produced by this
+        split process has fewer elements than those specified by `ID_loc`, then nan is used
+        for both file identifiers of that file.
+        
+    inc_patn : list
+        List of patterns (strings) used restrict files added to the filelist; all filenames
+        that contain `inc_patn` will potentially be added to the running filelist, so long
+        as they also do not contain all patterns found in `ex_patn`.
+        
+    ex_patn : list
+        List of patterns (strings) used restrict files added to the filelist; all filenames
+        that do not contain 'ex_patn` will potentially be added to the running filelist, so long
+        as they also contain all patterns found in `inc_patn`.
 
     Returns
     -------
-    list :
-        List of file paths to RHESSys output files based on `Dir`, 'Spat', 
-        `Time`, and `Growth` arguements. Paths are absolute not relative.
-
+    pd.DataFrame
+        Dataframe containing filenames and associated file identifiers as columns.
+        
     """
-    if Spat not in ['basin', 'hillslope', 'zone', 'patch', 'stratum']:
-        print("Error: Spatial scale, {}, is not a valid option".format(Spat))
+    
+    # First check if all arguements are correct (type, and size)
+    if type(Path).__name__ != 'str':
+        print("Error: `Path` is not a string.")
+        return 0 
+    
+    if type(Delim).__name__ != 'str':
+        print("Error: `Delim` is not a string.")
         return 0
     
-    if Time not in ['daily', 'monthly', 'yearly']:
-        print("Error: Temporal scale, {}, is not a valid option".format(Time))
+    if type(ID_loc).__name__ != 'list':
+        print("Error: `ID_loc` is not a list.")
         return 0
     
-    if Growth not in [True, False]:
-        print("Error: Growth flag, {}, is not a valid option".format(Growth))
+    if type(inc_patn).__name__ != 'list':
+        print("Error: `inc_patn` is not a list.")
         return 0
     
-    npath = os.path.abspath(Dir)
-    flist = os.listdir(npath)
-    flist = [npath + '\\' + s for s in flist]
+    if type(ex_patn).__name__ != 'list':
+        print("Error: `ex_patn` is not a list.")
+        return 0
     
-    if Growth == False:
-        flist = [s for s in flist if (Spat + "." + Time) in s and "grow" not in s]
+    # Check if the specified directory path exists
+    if not os.path.exists(Path):
+        print("Error: 'Path' is invalid.")
+        return 0
+    
+    # Normalize the target directory path
+    tarpath = os.path.normpath(Path)
+        
+    # Create empty arrays for roots, files, and tags
+    rootlist = np.empty(0)
+    filelist = np.empty(0)
+    idlist = np.empty(0)
+    
+    # Using os.walk(), create a file structure tree object, and then loop through
+    # all the files to create a filelist whilst also extracting specified file 
+    # identitiers (ID_loc). Only keep files that contain `inc_patn` and do not 
+    # contain `ex_patn`
+    
+    for root, dirs, files in os.walk(tarpath):
+        for file in files:
+            # Filter by `inc_patn` and `ex_patn`
+            lt = bool(all([ptn in file for ptn in inc_patn]) * all([ptn not in file for ptn in ex_patn]))                                                        
+            # If file exists, add root, filename, and ids to their lists
+            if lt:
+                rootlist = np.append(rootlist, np.array(root))
+                filelist = np.append(filelist, os.path.join(root, file))
+                if len(ID_loc) > 0:
+                    try:
+                        idtmp = np.array(file.split(Delim))[ID_loc]                    
+                    except:
+                        idtmp = np.empty(len(ID_loc))
+                        idtmp[:] = np.nan
+                
+                    idlist = np.append(idlist, idtmp)
+                else:
+                    idtmp = np.empty(1)
+                    idtmp[:] = np.nan
+                    idlist = np.append(idlist, idtmp)
+            
+ 
+    
+    # Reshape the idlist to a 2d array with #cols = length of ID_loc list
+    if len(ID_loc) < 1:
+        ncol = 1
     else:
-        flist = [s for s in flist if ("grow_" + Spat + "." + Time) in s]
+        ncol = len(ID_loc)
+        
+    idlist = idlist.reshape((int(len(idlist)/ncol), ncol))
+    colnames=['i'+str(i) for i in range(0,ncol)]
     
-    return flist
+    # Create the filelist dataframe using the idlist array as a skeleton
+    df0 = pd.DataFrame(idlist, columns=colnames)    
     
-# FILELIST = create_filelist(Dir="./input", Spat="basin", Time="daily", Growth=False)
+    # Add the files to the filelist dataframe
+    try:
+        df0['file'] = filelist        
+    except:
+        df0['file'] = np.nan
+    
+    # Sort the dataframe by the colnames identifier (typically these are integers)
+    df0.sort_values(by=colnames)
+    
+    return df0
 
 #%% Read header names of a RHESSys output file
 
@@ -878,9 +951,10 @@ def count_line(File: str) -> int:
                 count += 1
     return count
 
+
 #%% Function to Extract Variable Output From a list of files
 
-def merge_sims(Filelist: list, Varlist: list, Bounds: list, Spat: str, Time: str, Random: bool = False) -> list:
+def merge_sims(Filelist: list, Varlist: list, Spat: str, Time: str, Bounds: list = [None, None], Random: bool = False) -> list:
     """
     Function to extract specified columns of data from a multiple files (csv or tsv)
     and then merge them into a list of dataframes. For each variable in `Varlist`
@@ -917,28 +991,35 @@ def merge_sims(Filelist: list, Varlist: list, Bounds: list, Spat: str, Time: str
         to the file length + the number of spatial and temporal identifies are associated
         with the filetype.
 
-    """
-    
+    """        
+    nvar = len(Varlist)   # number of variables
+    nfile = len(Filelist) # number of files
     datlist = list()
-    n = len(Varlist)
     
-    for i in range(0,n):
+    # Create empty list with as many empty sublist as there variables
+    for i in range(0,nvar):
+        datlist.insert(i, [])
+    
+    for i in range(0,nfile):        
+        # Read in the RHESSys file with target variables
         dat = read_rhessys(File=Filelist[i], Spat=Spat, Time=Time, Varlist=Varlist, Bounds=Bounds)
         if type(dat).__name__ == 'NoneType':
             continue
-        tid = [col not in Varlist for col in dat.columns]
-        tcol = dat.columns[tid].tolist()        
-        cname = str(i)
         
-        for j in range(0,len(Varlist)):    
-            if i == 0 or datlist == []:
-                # Initialize data frames            
-                datlist.insert(j, dat[tcol].copy())
-                datlist[j][cname] = dat[Varlist[j]].copy()                        
+        # Obtain list of column names that are not in `Varlist`
+        tid = [col not in Varlist for col in dat.columns] # find column not specified as taget variables
+        tcol = dat.columns[tid].tolist()                  # create a list of these
+                
+        for j in range(0,nvar):    
+            if not list(datlist[j]):
+                # Initialize data frame            
+                #datlist.insert(j, dat[tcol].copy())
+                datlist[j] = dat[tcol].copy()
+                datlist[j][str(i+1)] = dat[Varlist[j]].copy()                        
             else:
                 # 1st check if None variabels match
                 keep = True
-                for z in range(0,len(tcol)):
+                for z in range(0,len(tcol)):                    
                     
                     # Check for same number of rows
                     if len(datlist[j][tcol[z]].values) != len(dat[tcol[z]].values):
@@ -951,37 +1032,97 @@ def merge_sims(Filelist: list, Varlist: list, Bounds: list, Spat: str, Time: str
                         keep = False
                 
                 if keep == True:
-                    datlist[j][cname] = dat[Varlist[j]].copy()
+                    datlist[j][str(i+1)] = dat[Varlist[j]].copy()
                     
     return datlist
 
 #%% Test
 
 
-VARLIST = ['overland_flow', 'denitrif']
-BOUNDS = [None,None]
-SPAT = "patch"
-TIME = "yearly"
-GROWTH = False
-RANDOM = True # if simulation Time comes from random year module (by Min)
-
-FILEPATH = "./initialization/output/test2"
-filelist = create_filelist(Dir=FILEPATH, Spat=SPAT, Time=TIME, Growth=GROWTH)
-taglist = [nt.basename(item).split("_")[0] for item in filelist]
-
-dlist = merge_sims(Filelist=filelist, Varlist=VARLIST, Bounds=BOUNDS, Spat=SPAT, Time=TIME, Random=True)
+# =============================================================================
+# VARLIST = ['overland_flow', 'denitrif']
+# BOUNDS = [None,None]
+# SPAT = "patch"
+# TIME = "yearly"
+# GROWTH = False
+# RANDOM = True # if simulation Time comes from random year module (by Min)
+# 
+# FILEPATH = "./initialization/output/test2"
+# filelist = create_filelist(Dir=FILEPATH, Spat=SPAT, Time=TIME, Growth=GROWTH)
+# taglist = [nt.basename(item).split("_")[0] for item in filelist]
+# 
+# dlist = merge_sims(Filelist=filelist, Varlist=VARLIST, Bounds=BOUNDS, Spat=SPAT, Time=TIME, Random=True)
+# =============================================================================
 
 #%% To apply rolling mean to columns in place
 # will use as little as few as x rows to calculate rolling mean if  min_periods=x
 
-df = dlist[1]
-tmp = [col not in ['year', 'patchID'] for col in df.columns]
-tmp = df.columns[tmp]
-df2 = df.copy()
-df2[tmp] = df2[tmp].rolling(5,1).mean()
-print(df,'\n\n')
-print(df2)
-
+# =============================================================================
+# df = dlist[1]
+# tmp = [col not in ['year', 'patchID'] for col in df.columns]
+# tmp = df.columns[tmp]
+# df2 = df.copy()
+# df2[tmp] = df2[tmp].rolling(5,1).mean()
+# print(df,'\n\n')
+# print(df2)
+# 
+# =============================================================================
 # Still need a function to calculate NSE, R2, RMSE, %BIAS, ETC for a wide dataframe
-\ No newline at end of file
+# \ No newline at end of file
+
+#%% Get RHESSys output filelist (archived)
+
+# =============================================================================
+# def create_filelist(Dir: str, Spat: str, Time: str, Growth: bool) -> list:
+#     """
+#     Create a list of RHESSys output files based on the specified 'Spat', 'Time', 
+#     and `Growth` arguements for directory `Dir`.
+# 
+#     Parameters
+#     ----------
+#     Dir : str
+#         Directory from which to query for RHESSys output files.
+#         
+#     Spat : str
+#         Spatial scale of RHESSys output files to query, including either:
+#             (1) "basin", (2) "zone", (3) "hillslope", (4) "patch", (5) "stratum"
+#         
+#     Time : str
+#         Temporal scale of RHESSsy output files to query, including either:
+#             (1) "daily", (2) "monthly", or (3) "yearly".
+#             
+#     Growth : bool
+#         Flag that specifies whether or not to search for growth output files.
+# 
+#     Returns
+#     -------
+#     list :
+#         List of file paths to RHESSys output files based on `Dir`, 'Spat', 
+#         `Time`, and `Growth` arguements. Paths are absolute not relative.
+# 
+#     """
+#     if Spat not in ['basin', 'hillslope', 'zone', 'patch', 'stratum']:
+#         print("Error: Spatial scale, {}, is not a valid option".format(Spat))
+#         return 0
+#     
+#     if Time not in ['daily', 'monthly', 'yearly']:
+#         print("Error: Temporal scale, {}, is not a valid option".format(Time))
+#         return 0
+#     
+#     if Growth not in [True, False]:
+#         print("Error: Growth flag, {}, is not a valid option".format(Growth))
+#         return 0
+#     
+#     npath = os.path.abspath(Dir)
+#     flist = os.listdir(npath)
+#     flist = [npath + '\\' + s for s in flist]
+#     
+#     if Growth == False:
+#         flist = [s for s in flist if (Spat + "." + Time) in s and "grow" not in s]
+#     else:
+#         flist = [s for s in flist if ("grow_" + Spat + "." + Time) in s]
+#     
+#     return flist
+# =============================================================================
+    
 
