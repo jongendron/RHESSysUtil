@@ -169,12 +169,12 @@ def rhessys(File: str, Spat: str, Time: str, Varlist: list, Bounds: list = [None
     if Bounds[0] == None:
         st = 0
     else:
-        st = Bounds[0]
+        st = int(Bounds[0])
         
     if Bounds[1] == None:
         end = None
     else:
-        end = Bounds[1] - Bounds[0] + 1
+        end = int(Bounds[1]) - st + 1
     
     # 4th load in the variables
     # -> create an if condition or a switch that makes decisions based on `Spat` and `Time`

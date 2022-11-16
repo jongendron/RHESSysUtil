@@ -24,7 +24,7 @@ sys.path.append(tar_dir2)
 from rhessys_util import util # determine which modules required
 
 #%% Custom Settings
-global_args = [os.path.abspath(r"C:/Ubuntu/rhessys/RHESSysUtil/src/scripts/parameterization/Manual/template_program_input_options.csv")]
+# global_args = [os.path.abspath(r"C:/Ubuntu/rhessys/RHESSysUtil/src/scripts/parameterization/Manual/template_program_input_options.csv")]
 global_args = [os.path.abspath(r"C:/Ubuntu/rhessys/RHESSysUtil/src/scripts/parameterization/Manual/template2_program_input_options.csv")]
 settings_file = global_args[0] # should be first arguement
 settings_tsv = False
@@ -82,6 +82,10 @@ def main():
             Ptbl = True
             )
     
+    if file_dict == None:
+        print("Error: filelist dictionary not created")
+        #return None
+    
     #%% Extract data (script in same dir)
     if progset['extract']['value'] == True:
         import extract_param
@@ -89,7 +93,8 @@ def main():
             Filelist=file_dict['files'],            
             Varlist=progset['varlist']['value'], 
             Spat=progset['spat']['value'], 
-            Time=progset['time']['value']
+            Time=progset['time']['value'],
+            Bounds=progset['bounds']['value']
             )
     
         #%% Write the Extract data to file     

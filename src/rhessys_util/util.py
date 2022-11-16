@@ -64,10 +64,28 @@ def import_settings(File: str, TSV: bool = False) -> dict:
         val2 = val.replace('\"', '').replace(' ', '').split(',')        
         
         if typ2.casefold() != 'list':
-            val2 = ' '.join(val2)   
-        
-        if typ2.casefold() == 'bool':
-            val2 = [val2.casefold() == 'true'][0]
+            val2 = ' '.join(val2)
+            if val2.casefold() == 'none':
+                val2 = None
+            elif val2.casefold() == "true":
+                val2 = True
+            elif val2.casefold() == 'false':
+                val2 = False
+        else:            
+            ltmp = []
+            for item in val2:
+                if item.casefold() == 'none':
+                    ltmp.append(None)
+                elif item.casefold() == "true":
+                    ltmp.append(True)
+                elif item.casefold() == "false":
+                    ltmp.append(False)
+                else:
+                    ltmp.append(item)
+            val2 = ltmp                            
+                        
+        #if typ2.casefold() == 'bool':
+        #    val2 = [val2.casefold() == 'true'][0]            
             
         # save variable, function, class, and value to the dictionary
         prog_set[var2] = {

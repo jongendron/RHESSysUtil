@@ -72,6 +72,10 @@ def filelist_param(Path: str, Time: str, Spat: str, Grow: bool, Ptbl: bool = Tru
     # tags in the file name (i.e. parfile_parset_...)
     filelist = util.filelist(Path=Path, Delim="_", ID_loc=[0, 1], inc_patn=[inc], ex_patn=[ex])
     
+    if filelist.empty:
+        print("Error: No RHESSys files found at specified path based on filter arguements.")
+        return None
+    
     # Add to dictionary
     ftbl['files'] = filelist # could be None
     
@@ -80,27 +84,32 @@ def filelist_param(Path: str, Time: str, Spat: str, Grow: bool, Ptbl: bool = Tru
         # these files should end with '_parlist.txt'            
         # parlist = util.filelist(Path=Path, Delim="_", ID_loc=[], inc_patn=["parlist.txt"], ex_patn=[None])
         parlist = util.filelist(Path=Path, Delim="_", ID_loc=[0, 1], inc_patn=["parlist.txt"], ex_patn=[None])
-        parlist = parlist.reset_index(drop=True)
         
-        # Create extract parameter values from the parameter and store in a dataframe
-        # with the same filename identifiers
-        partbl = []
-        for file in parlist['file']:
-            partbl.append(pd.read_csv(file, delim_whitespace=True)) # files need to be tab deliminated # TODO: Check if this can handle other format
-        
-        if not partbl:
-            print("Error: RHESSys files specified don't exist in this path")
-            return None
-        partbl = pd.concat(partbl)
-        partbl = partbl.reset_index(drop=True)
-        
-        # Add tags to partable (if tags are not inside of partable)
-        if partbl.shape[0] == parlist.shape[0]:
-            partbl = pd.concat([parlist.loc[:, parlist.columns != 'file'].reset_index(drop=True), partbl.reset_index(drop=True)], axis=1)            
+        if not parlist.empty:            
+            parlist = parlist.reset_index(drop=True)
+            
+            # Create extract parameter values from the parameter and store in a dataframe
+            # with the same filename identifiers
+            partbl = []
+            for file in parlist['file']:
+                partbl.append(pd.read_csv(file, delim_whitespace=True)) # files need to be tab deliminated # TODO: Check if this can handle other format
+            
+            if not partbl:
+                print("Error: RHESSys files specified don't exist in this path")
+                return None
+            partbl = pd.concat(partbl)
+            partbl = partbl.reset_index(drop=True)
+            
+            # Add tags to partable (if tags are not inside of partable)
+            if partbl.shape[0] == parlist.shape[0]:
+                partbl = pd.concat([parlist.loc[:, parlist.columns != 'file'].reset_index(drop=True), partbl.reset_index(drop=True)], axis=1)            
+                        
+            # Add to dictionary        
+            ftbl['params'] = partbl
+        else:
+            print("Warning: Parameter description files not located at specified path. Skipping table creation.")
+            ftbl['params'] = None
                     
-        # Add to dictionary        
-        ftbl['params'] = partbl
-        
     print("End of filelist_param()", '\n'*2)
     return ftbl
 

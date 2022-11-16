@@ -7,13 +7,14 @@
 # 4 | Module4 | Data Visualization,,,,
 module,variable,function,type,value
 0,"""jobname""","""variable""","""str""","""cal1"""
-0,"""varlist""","""variable""","""list""","""precip, streamflow, trans"""
+0,"""varlist""","""variable""","""list""","""AGBc, LAI, height"""
 0,"""in_path""","""variable""","""path""","""C:\Ubuntu\rhessys\temp\output\gridmet\1979\1"""
 0,"""out_path""","""variable""","""path""","""C:\Ubuntu\rhessys\temp\storage"""
-0,"""spat""","""variable""","""str""","""basin"""
-0,"""time""","""variable""","""str""","""daily"""
+0,"""spat""","""variable""","""str""","""stratum"""
+0,"""time""","""variable""","""str""","""yearly"""
 0,"""grow""","""variable""","""bool""","""False"""
-0,"""out_ext""","""variable""","""str""","""basin.yearly"""
+0,"""bounds""","""variable""","""list""","""None, ""None"""
+0,"""out_ext""","""variable""","""str""","""stratum.yearly"""
 0,"""delim""","""variable""","""str""","""_"""
 1,"""filelist""","""switch""","""bool""","""True"""
 0,"""id_loc""","""variable""","""list""","""1, 2"""
