@@ -25,7 +25,7 @@ from rhessys_util import util # determine which modules required
 
 #%% Custom Settings
 # global_args = [os.path.abspath(r"C:/Ubuntu/rhessys/RHESSysUtil/src/scripts/parameterization/Manual/template_program_input_options.csv")]
-global_args = [os.path.abspath(r"C:/Ubuntu/rhessys/RHESSysUtil/src/scripts/parameterization/Manual/template2_program_input_options.csv")]
+global_args = [os.path.abspath(r"C:/Ubuntu/rhessys/RHESSysUtil/src/scripts/parameterization/Manual/template_program_input_basin_daily_options.csv")]
 settings_file = global_args[0] # should be first arguement
 settings_tsv = False
 #%% Define the main function
@@ -89,60 +89,83 @@ def main():
     #%% Extract data (script in same dir)
     if progset['extract']['value'] == True:
         import extract_param
-        data = extract_param.extract_param(
-            Filelist=file_dict['files'],            
-            Varlist=progset['varlist']['value'], 
-            Spat=progset['spat']['value'], 
-            Time=progset['time']['value'],
-            Bounds=progset['bounds']['value']
-            )
-    
-        #%% Write the Extract data to file     
-        if progset['extract_write']['value'] == True:
-            outsuffix = ''
-            if progset['grow']['value'] == True:
-                outsuffix = "".join([outsuffix,"grow"])
-            outsuffix = "_".join([outsuffix, progset['spat']['value'], progset['time']['value'] + '.csv'])
-            
-            outprefix = os.path.abspath(progset['out_path']['value'])
-            try:
-                os.mkdir(outprefix)
-            except OSError as error:
-                print(error)
-                            
-            for var in data:
-                outsuffix2 = "".join(['extract_' + var, outsuffix])            
-                outfile = os.path.join(outprefix, outsuffix2)
-                data[var].to_csv(outfile, index=False)
+        
+        if progset['extract_skip']['value'] != True:
+            data = extract_param.extract_param(
+                Filelist=file_dict['files'],            
+                Varlist=progset['varlist']['value'], 
+                Spat=progset['spat']['value'], 
+                Time=progset['time']['value'],
+                Bounds=progset['bounds']['value'],
+                Simtime=progset['simtime']['value']
+                )
+        
+            #%% Write the Extract data to file     
+            if progset['extract_write']['value'] == True:
+                outsuffix = ''
+                if progset['grow']['value'] == True:
+                    outsuffix = "".join([outsuffix,"grow"])
+                outsuffix = "_".join([outsuffix, progset['spat']['value'], progset['time']['value'] + '.csv'])
+                
+                outprefix = os.path.abspath(progset['out_path']['value'])
+                try:
+                    os.mkdir(outprefix)
+                except OSError as error:
+                    print(error)
+                                
+                for var in data:
+                    outsuffix2 = "".join(['extract_' + var, outsuffix])            
+                    outfile = os.path.join(outprefix, outsuffix2)
+                    data[var].to_csv(outfile, index=False)
+        #%%
+        else:
+            # Load previously extracted files for each variable -> merge into a dictionary
+            # this allows the user to skip all steps up until and including the extract module
+            print("This section will load pre extracted files") 
     
     #%% Tidy data (script in same dir)
     if progset['tidy']['value'] == True:
         import tidy_param
-        data = tidy_param.tidy_param(
-            Data=data, 
-            Agg=progset['agg']['value'], 
-            Agg_grp1=progset['agg_grp1']['value'], 
-            Agg_grp2=progset['agg_grp2']['value'], 
-            Agg_method=progset['agg_method']['value']
-            )
+        
+        if progset['tidy_skip']['value'] != True:                    
+            
+            data = tidy_param.tidy_param(
+                Data=data,            
+                Join=progset['join']['value'],
+                Join_file=progset['join_file']['value'], # can use this to join streamflow for calibration
+                Join_file_form=progset['join_file_form']['value'],
+                Join_grp=progset['join_grp']['value'],
+                Agg=progset['agg']['value'], 
+                Agg_grp1=progset['agg_grp1']['value'], 
+                Agg_grp2=progset['agg_grp2']['value'], 
+                Agg_method=progset['agg_method']['value'],
+                Rollmean=progset['rollmean']['value'],
+                Rollmean_k=progset['rollmean_k']['value'],
+                Rollmean_grp=progset['rollmean_grp']['value']
+                )
                 
         #%% Write Tidy data to file
-        if progset['tidy_write']['value'] == True:
-            outsuffix = ''
-            if progset['grow']['value'] == True:
-                outsuffix = "".join([outsuffix,"grow"])
-            outsuffix = "_".join([outsuffix, progset['spat']['value'], progset['time']['value'] + '.csv'])
-            
-            outprefix = os.path.abspath(progset['out_path']['value'])
-            try:
-                os.mkdir(outprefix)
-            except OSError as error: # Error produced when it exists; print it
-                print(error)
-                            
-            for var in data:
-                outsuffix2 = "".join(['tidy_' + var, outsuffix])            
-                outfile = os.path.join(outprefix, outsuffix2)
-                data[var].to_csv(outfile, index=False)
+            if progset['tidy_write']['value'] == True:
+                outsuffix = ''
+                if progset['grow']['value'] == True:
+                    outsuffix = "".join([outsuffix,"grow"])
+                outsuffix = "_".join([outsuffix, progset['spat']['value'], progset['time']['value'] + '.csv'])
+                
+                outprefix = os.path.abspath(progset['out_path']['value'])
+                try:
+                    os.mkdir(outprefix)
+                except OSError as error: # Error produced when it exists; print it
+                    print(error)
+                                
+                for var in data:
+                    outsuffix2 = "".join(['tidy_' + var, outsuffix])            
+                    outfile = os.path.join(outprefix, outsuffix2)
+                    data[var].to_csv(outfile, index=False)
+        #%%
+        else:
+            # Load previously tidy files for each variable -> merge into a dictionary
+            # this allows the user to skip all steps up until and including the tidy module
+            print("This section will load pre tidied files")
             
         
     #%% TODO: Analyze data (script in same dir)

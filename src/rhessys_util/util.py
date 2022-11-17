@@ -9,6 +9,7 @@ import os
 import sys
 import numpy as np
 import pandas as pd
+import warnings
 
 #%% Function to read input settings file
 
@@ -71,6 +72,15 @@ def import_settings(File: str, TSV: bool = False) -> dict:
                 val2 = True
             elif val2.casefold() == 'false':
                 val2 = False
+            
+            if typ2.casefold() == "int":
+                try:
+                    val2 = int(val2)
+                except:
+                    wmsg = f"Warning: {val2} could not be coerced to `int`. Keeping as `str`."
+                    warnings.warn(wmsg)
+                    pass
+            
         else:            
             ltmp = []
             for item in val2:

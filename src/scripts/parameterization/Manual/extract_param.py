@@ -22,7 +22,7 @@ from rhessys_util import extract
 
 #%% Define the export_param function
 # Requires
-def extract_param(Filelist: list, Varlist: list, Spat: str, Time: str, Bounds: list = [None, None], Check_date: bool = False) -> list:
+def extract_param(Filelist: list, Varlist: list, Spat: str, Time: str, Bounds: list = [None, None], Check_date: bool = False, Simtime: bool = True) -> list:
     """
     Function to extract specified columns of data from a multiple files (csv or tsv)
     and then merge them into a list of dataframes. For each variable in `Varlist`
@@ -53,6 +53,10 @@ def extract_param(Filelist: list, Varlist: list, Spat: str, Time: str, Bounds: l
         from each file in `Filelist` and the initialized pd.DateFrame built for each variable.
         If `False`, Do not include date identifies ('day', 'month', 'year') in the comparison.
         The default is False.
+    Simtime : bool, optional
+        If 'True' include check for and use simtime variables ('sday', 'smth', 'syr') from RHESSys outputfile.
+        If 'False' disclude check for these variable. Furthermore, `daily`, `monthly`, and `yearly` time scale
+        checks for separate variables. See extract.py for more information.
 
     Returns
     -------
@@ -88,7 +92,7 @@ def extract_param(Filelist: list, Varlist: list, Spat: str, Time: str, Bounds: l
     for i in range(0,nfile):        
         # Read in the RHESSys file with target variables
         # Make sure that this step only reads spatial/time variables + target varaibles (may need to change rhessys to include simtime switch) ############## TODO:
-        dat = extract.rhessys(File=Filelist['file'][i], Spat=Spat, Time=Time, Varlist=Varlist, Bounds=Bounds) # TODO: Include setting for grabbing simtime
+        dat = extract.rhessys(File=Filelist['file'][i], Spat=Spat, Time=Time, Varlist=Varlist, Bounds=Bounds, Simtime=Simtime) # TODO: Include setting for grabbing simtime
         if type(dat).__name__ == 'NoneType':
             continue
         

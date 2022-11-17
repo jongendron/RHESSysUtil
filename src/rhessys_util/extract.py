@@ -175,6 +175,8 @@ def rhessys(File: str, Spat: str, Time: str, Varlist: list, Bounds: list = [None
         end = None
     else:
         end = int(Bounds[1]) - st + 1
+        if end <= 0:
+            end = None
     
     # 4th load in the variables
     # -> create an if condition or a switch that makes decisions based on `Spat` and `Time`
@@ -188,7 +190,7 @@ def rhessys(File: str, Spat: str, Time: str, Varlist: list, Bounds: list = [None
                          usecols=foundlist,
                          #usecols= lambda x: x.lower() in checklist_lwr,
                          skiprows=st,
-                         nrows=end
+                         nrows=end # if end is longer than file it just goes to last line
                          )
         print("Successfully loaded file:\n{}".format(File))
         return df
