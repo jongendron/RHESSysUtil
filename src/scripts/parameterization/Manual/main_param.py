@@ -26,10 +26,12 @@ sys.path.append(tar_dir2)
 from rhessys_util import util # determine which modules required
 
 #%% Custom Settings
-# global_args = [os.path.abspath(r"C:/Ubuntu/rhessys/RHESSysUtil/src/scripts/parameterization/Manual/template_program_input_options.csv")]
-#global_args = [os.path.abspath(r"C:/Ubuntu/rhessys/RHESSysUtil/src/scripts/parameterization/Manual/template_program_input_basin_daily_options.csv")]
-#settings_file = global_args[0] # should be first arguement
-#settings_tsv = False
+# =============================================================================
+# #global_args = [os.path.abspath(r"C:/Ubuntu/rhessys/RHESSysUtil/src/scripts/parameterization/Manual/template_program_input_options.csv")]
+# global_args = [os.path.abspath(r"C:/Ubuntu/rhessys/RHESSysUtil/src/scripts/parameterization/Manual/template_program_input_basin_daily_options.csv")]
+# settings_file = global_args[0] # should be first arguement
+# settings_tsv = False
+# =============================================================================
 
 #%% Define the main function
 def main():
@@ -88,6 +90,36 @@ def main():
     if file_dict == None:
         print("Error: filelist dictionary not created")
         #return None
+        
+    try:
+        print()
+        print(file_dict['params'])
+        print()                        
+    except:
+        wmsg = 'Warning: param table does not exist.'
+        warnings.warn(wmsg)
+        pass
+    
+    outprefix = os.path.abspath(progset['out_path']['value'])
+    try:        
+        pathlib.Path(outprefix).mkdir(parents=True, exist_ok=True)
+    except OSError as error:
+        print(error)
+        wmsg = 'Warning: Extract Module Writing Procedure output directy creation failed unexpectedly. Skipping this step.'
+        warnings.warn(wmsg)
+        pass
+    
+    #outfile = "_".join([progset['out_tag']['value'], "parlist.csv"])
+    #outfile = os.path.join(outprefix, outfile)
+    outfile = os.path.join(outprefix, "parlist.csv")    
+    try:
+        file_dict['params'].to_csv(outfile, index=False)
+    except:
+        wmsg = 'Warning: Writing of params file failed unexceptedly. Skipping.'
+        warnings.warn(wmsg)
+        pass
+        
+    print()
     
     #%% Extract data (script in same dir)
     if progset['extract']['value'] == True:
@@ -110,19 +142,21 @@ def main():
                     outsuffix = "".join([outsuffix,"grow"])
                 outsuffix = "_".join([outsuffix, progset['spat']['value'], progset['time']['value'] + '.csv'])
                 
-                outprefix = os.path.abspath(progset['out_path']['value'])
-                try:
-                    #os.mkdir(outprefix)
-                    pathlib.Path(outprefix).mkdir(parents=True, exist_ok=True)
-                except OSError as error:
-                    print(error)
-                    wmsg = 'Warning: Extract Module Writing Procedure output directy creation failed unexpectedly. Skipping this step.'
-                    warnings.warn(wmsg)
-                    pass
+# =============================================================================
+#                 outprefix = os.path.abspath(progset['out_path']['value'])
+#                 try:
+#                     #os.mkdir(outprefix)
+#                     pathlib.Path(outprefix).mkdir(parents=True, exist_ok=True)
+#                 except OSError as error:
+#                     print(error)
+#                     wmsg = 'Warning: Extract Module Writing Procedure output directy creation failed unexpectedly. Skipping this step.'
+#                     warnings.warn(wmsg)
+#                     pass
+# =============================================================================
                                 
                 try:
                     for var in data:
-                        outsuffix2 = "".join(['extract_' + var, outsuffix])            
+                        outsuffix2 = "".join(['extract_' + var,"_",progset['out_tag']['value'], outsuffix])            
                         outfile = os.path.join(outprefix, outsuffix2)
                         data[var].to_csv(outfile, index=False)
                 except OSError as error:
@@ -165,19 +199,21 @@ def main():
                     outsuffix = "".join([outsuffix,"grow"])
                 outsuffix = "_".join([outsuffix, progset['spat']['value'], progset['time']['value'] + '.csv'])
                 
-                outprefix = os.path.abspath(progset['out_path']['value'])                
-                try:
-                    #os.mkdir(outprefix)
-                    pathlib.Path(outprefix).mkdir(parents=True, exist_ok=True)
-                except OSError as error:
-                    print(error)
-                    wmsg = 'Warning: Tidy Module Writing Procedure output directy creation failed unexpectedly. Skipping this step.'
-                    warnings.warn(wmsg)
-                    pass
+# =============================================================================
+#                 outprefix = os.path.abspath(progset['out_path']['value'])                
+#                 try:
+#                     #os.mkdir(outprefix)
+#                     pathlib.Path(outprefix).mkdir(parents=True, exist_ok=True)
+#                 except OSError as error:
+#                     print(error)
+#                     wmsg = 'Warning: Tidy Module Writing Procedure output directy creation failed unexpectedly. Skipping this step.'
+#                     warnings.warn(wmsg)
+#                     pass
+# =============================================================================
                                 
                 try:
                     for var in data:
-                        outsuffix2 = "".join(['tidy_' + var, outsuffix])            
+                        outsuffix2 = "".join(['tidy_' + var, "_", progset['out_tag']['value'], outsuffix])            
                         outfile = os.path.join(outprefix, outsuffix2)
                         data[var].to_csv(outfile, index=False)
                 except OSError as error:
