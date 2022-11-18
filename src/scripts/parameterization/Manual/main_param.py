@@ -8,6 +8,8 @@ Created on Mon Oct 17 10:41:40 2022
 #%% Import Dependencies
 import numpy as np
 import pandas as pd
+import pathlib
+import warnings
 
 #%% Import Dependencies from RHESSysUtil Modules by editing System path to include rhessys_util
 import sys, os
@@ -25,9 +27,10 @@ from rhessys_util import util # determine which modules required
 
 #%% Custom Settings
 # global_args = [os.path.abspath(r"C:/Ubuntu/rhessys/RHESSysUtil/src/scripts/parameterization/Manual/template_program_input_options.csv")]
-global_args = [os.path.abspath(r"C:/Ubuntu/rhessys/RHESSysUtil/src/scripts/parameterization/Manual/template_program_input_basin_daily_options.csv")]
-settings_file = global_args[0] # should be first arguement
-settings_tsv = False
+#global_args = [os.path.abspath(r"C:/Ubuntu/rhessys/RHESSysUtil/src/scripts/parameterization/Manual/template_program_input_basin_daily_options.csv")]
+#settings_file = global_args[0] # should be first arguement
+#settings_tsv = False
+
 #%% Define the main function
 def main():
     """
@@ -50,7 +53,7 @@ def main():
     #%% Set system arguements
     
     global_args = sys.argv
-    # print(global_args)
+    print(global_args)
     try:
         settings_file = global_args[1] # should be first arguement
     except:
@@ -109,14 +112,25 @@ def main():
                 
                 outprefix = os.path.abspath(progset['out_path']['value'])
                 try:
-                    os.mkdir(outprefix)
+                    #os.mkdir(outprefix)
+                    pathlib.Path(outprefix).mkdir(parents=True, exist_ok=True)
                 except OSError as error:
                     print(error)
+                    wmsg = 'Warning: Extract Module Writing Procedure output directy creation failed unexpectedly. Skipping this step.'
+                    warnings.warn(wmsg)
+                    pass
                                 
-                for var in data:
-                    outsuffix2 = "".join(['extract_' + var, outsuffix])            
-                    outfile = os.path.join(outprefix, outsuffix2)
-                    data[var].to_csv(outfile, index=False)
+                try:
+                    for var in data:
+                        outsuffix2 = "".join(['extract_' + var, outsuffix])            
+                        outfile = os.path.join(outprefix, outsuffix2)
+                        data[var].to_csv(outfile, index=False)
+                except OSError as error:
+                    print(error)
+                    wmsg = 'Warning: Extract Module Writing Procedure failed unexpectedly. Skipping this step.'
+                    warnings.warn(wmsg)
+                    pass
+                    
         #%%
         else:
             # Load previously extracted files for each variable -> merge into a dictionary
@@ -151,16 +165,27 @@ def main():
                     outsuffix = "".join([outsuffix,"grow"])
                 outsuffix = "_".join([outsuffix, progset['spat']['value'], progset['time']['value'] + '.csv'])
                 
-                outprefix = os.path.abspath(progset['out_path']['value'])
+                outprefix = os.path.abspath(progset['out_path']['value'])                
                 try:
-                    os.mkdir(outprefix)
-                except OSError as error: # Error produced when it exists; print it
+                    #os.mkdir(outprefix)
+                    pathlib.Path(outprefix).mkdir(parents=True, exist_ok=True)
+                except OSError as error:
                     print(error)
+                    wmsg = 'Warning: Tidy Module Writing Procedure output directy creation failed unexpectedly. Skipping this step.'
+                    warnings.warn(wmsg)
+                    pass
                                 
-                for var in data:
-                    outsuffix2 = "".join(['tidy_' + var, outsuffix])            
-                    outfile = os.path.join(outprefix, outsuffix2)
-                    data[var].to_csv(outfile, index=False)
+                try:
+                    for var in data:
+                        outsuffix2 = "".join(['tidy_' + var, outsuffix])            
+                        outfile = os.path.join(outprefix, outsuffix2)
+                        data[var].to_csv(outfile, index=False)
+                except OSError as error:
+                    print(error)
+                    wmsg = 'Warning: Tidy Module Writing Procedure failed unexpectedly. Skipping this step.'
+                    warnings.warn(wmsg)
+                    pass
+                
         #%%
         else:
             # Load previously tidy files for each variable -> merge into a dictionary
