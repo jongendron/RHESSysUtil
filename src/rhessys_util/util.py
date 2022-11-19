@@ -190,7 +190,10 @@ def filelist(Path: str, Delim: str, ID_loc: list, inc_patn: list, ex_patn: list)
     # identitiers (ID_loc). Only keep files that contain `inc_patn` and do not 
     # contain `ex_patn`
     
-    for root, dirs, files in os.walk(tarpath):
+    dir_exclude = ['storage', 'defs', 'param', 'archive', 'awk', 'util']
+    
+    for root, dirs, files in os.walk(tarpath, topdown=True):
+        dirs[:] = [d for d in dirs if d not in dir_exclude]
         for file in files:
             # Filter by `inc_patn` and `ex_patn`
             if None not in inc_patn and None not in ex_patn:
