@@ -26,12 +26,10 @@ sys.path.append(tar_dir2)
 from rhessys_util import util # determine which modules required
 
 #%% Custom Settings
-# =============================================================================
-# #global_args = [os.path.abspath(r"C:/Ubuntu/rhessys/RHESSysUtil/src/scripts/parameterization/Manual/template_program_input_options.csv")]
-# global_args = [os.path.abspath(r"C:/Ubuntu/rhessys/RHESSysUtil/src/scripts/parameterization/Manual/template_program_input_basin_daily_options.csv")]
-# settings_file = global_args[0] # should be first arguement
-# settings_tsv = False
-# =============================================================================
+
+settings_file = os.path.abspath(r"D:\Jon\Output\cal+eval\hyd\data\model\brw-init-veg4\2\progset_tmp.csv")
+settings_tsv = False
+
 
 #%% Define the main function
 def main():
