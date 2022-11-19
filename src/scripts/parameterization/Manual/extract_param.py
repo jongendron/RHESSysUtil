@@ -166,7 +166,7 @@ def extract_param(Filelist: list, Varlist: list, Spat: str, Time: str, Bounds: l
                     
                     vdict[Varlist[j]] = pd.merge(
                         vdict[Varlist[j]],
-                        dat[ltcol + [Varlist[j]]].rename(columns= {Varlist[j]: Filelist['i1'][i]}, inplace=False),
+                        dat[tcol + [Varlist[j]]].rename(columns= {Varlist[j]: Filelist['i1'][i]}, inplace=False),
                         how=merge_how
                         )
                         
