@@ -129,7 +129,7 @@ def extract_param(Filelist: list, Varlist: list, Spat: str, Time: str, Bounds: l
             if vdict[Varlist[j]].empty:
                 vdict[Varlist[j]] = dat[tcol + [Varlist[j]]].rename(columns= {Varlist[j]: Filelist['i1'][i]}, inplace=False).copy() # shallow copy, no nested list                
                 # vdict[Varlist[j]][str(i+1)] = dat[Varlist[j]].copy() # Use if you just want to count iteratively
-                ##vdict[Varlist[j]][Filelist['i1'][i]] = dat[Varlist[j]].copy() # Use if you want to preserve tags extracted from files                                          
+                ##vdict[Varlist[j]][Filelist['i1'][i]] = dat[Varlist[j]].copy() # Use if you want to preserve tags extracted from files            
             else:                
                 # If initialized, compares all column series in ltcol with series in vdict                
                 #TODO: find a way to ensure all columns from dat that are in ltcol are in vdict                

@@ -8,6 +8,7 @@ Created on Thu Oct 20 16:04:59 2022
 #%% Import Dependencies
 import numpy as np
 import pandas as pd
+import warnings
 
 #%% Import Dependencies from RHESSysUtil Modules by editing System path to include rhessys_util
 import sys, os
@@ -85,6 +86,11 @@ def filelist_param(Path: str, Time: str, Spat: str, Grow: bool, Ptbl: bool = Tru
         # parlist = util.filelist(Path=Path, Delim="_", ID_loc=[], inc_patn=["parlist.txt"], ex_patn=[None])
         parlist = util.filelist(Path=Path, Delim="_", ID_loc=[0, 1], inc_patn=["parlist.txt"], ex_patn=[None])
         
+        # Check that file tags are the sae        
+        if not filelist[['i0','i1']].equals(parlist[['i0','i1']]):
+            wmsg = 'Warning: File tag identifiers for RHESSys files and parfiles are not equal.'
+            warnings.warn(wmsg)
+                            
         if not parlist.empty:            
             parlist = parlist.reset_index(drop=True)
             
