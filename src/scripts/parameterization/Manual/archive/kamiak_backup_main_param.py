@@ -26,10 +26,12 @@ sys.path.append(tar_dir2)
 from rhessys_util import util # determine which modules required
 
 #%% Custom Settings
-
-settings_file = os.path.abspath(r"D:\Jon\Output\cal+eval\hyd\data\model\brw-init-veg4\2\progset_tmp.csv")
-settings_tsv = False
-
+# =============================================================================
+# #global_args = [os.path.abspath(r"C:/Ubuntu/rhessys/RHESSysUtil/src/scripts/parameterization/Manual/template_program_input_options.csv")]
+# global_args = [os.path.abspath(r"C:/Ubuntu/rhessys/RHESSysUtil/src/scripts/parameterization/Manual/template_program_input_basin_daily_options.csv")]
+# settings_file = global_args[0] # should be first arguement
+# settings_tsv = False
+# =============================================================================
 
 #%% Define the main function
 def main():
@@ -67,11 +69,6 @@ def main():
             settings_tsv = False
     except:
         settings_tsv = False
-        
-    try:
-        storage_idx = global_args[3]
-    except:
-        storage_idx = "NA"
         
     print(settings_file)
     print(settings_tsv)
@@ -114,8 +111,7 @@ def main():
     
     #outfile = "_".join([progset['out_tag']['value'], "parlist.csv"])
     #outfile = os.path.join(outprefix, outfile)
-    #outfile = os.path.join(outprefix, "parlist.csv")
-    outfile = os.path.join(outprefix, (storage_idx + "_" + "parlist.csv"))
+    outfile = os.path.join(outprefix, "parlist.csv")    
     try:
         file_dict['params'].to_csv(outfile, index=False)
     except:
@@ -161,8 +157,7 @@ def main():
                 try:
                     for var in data:
                         outsuffix2 = "".join(['extract_' + var,"_",progset['out_tag']['value'], outsuffix])            
-                        #outfile = os.path.join(outprefix, outsuffix2)
-                        outfile = os.path.join(outprefix, (storage_idx + "_" + outsuffix2))
+                        outfile = os.path.join(outprefix, outsuffix2)
                         data[var].to_csv(outfile, index=False)
                 except OSError as error:
                     print(error)
@@ -219,8 +214,7 @@ def main():
                 try:
                     for var in data:
                         outsuffix2 = "".join(['tidy_' + var, "_", progset['out_tag']['value'], outsuffix])            
-                        #outfile = os.path.join(outprefix, outsuffix2)
-                        outfile = os.path.join(outprefix, (storage_idx + "_" + outsuffix2))
+                        outfile = os.path.join(outprefix, outsuffix2)
                         data[var].to_csv(outfile, index=False)
                 except OSError as error:
                     print(error)

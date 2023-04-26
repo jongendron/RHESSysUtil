@@ -82,6 +82,7 @@ def rhessys(File: str, Spat: str, Time: str, Varlist: list, Bounds: list = [None
         return None
     
     # 2nd check if requested variables from `Spat`, `Time`, and `Vlist` are available
+    print(f"File: {File}")
     hdr = np.array(header(File = File))    
     checklist = Varlist.copy()     
     
@@ -192,11 +193,11 @@ def rhessys(File: str, Spat: str, Time: str, Varlist: list, Bounds: list = [None
                          skiprows=st,
                          nrows=end # if end is longer than file it just goes to last line
                          )
-        print("Successfully loaded file:\n{}".format(File))
+        print("Successfully loaded file:\n\n{}".format(File))
         return df
     
     except:
-        print("Unsuccessfully loaded file:\n{}".format(File))
+        print("Unsuccessfully loaded file:\n\n{}".format(File))
         return None
     
 # =============================================================================

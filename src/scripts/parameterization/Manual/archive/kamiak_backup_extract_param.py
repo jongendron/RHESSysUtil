@@ -10,7 +10,6 @@ extract_param() is not desinged to be a stand-alone function --
 #%% Import Dependencies
 import numpy as np
 import pandas as pd
-import warnings
 
 #%% Import Dependencies from RHESSysUtil Modules by editing System path to include rhessys_util
 import sys, os
@@ -93,9 +92,7 @@ def extract_param(Filelist: list, Varlist: list, Spat: str, Time: str, Bounds: l
     for i in range(0,nfile):        
         # Read in the RHESSys file with target variables
         # Make sure that this step only reads spatial/time variables + target varaibles (may need to change rhessys to include simtime switch) ############## TODO:
-        print(f"File: {Filelist['file'][i]}")
         dat = extract.rhessys(File=Filelist['file'][i], Spat=Spat, Time=Time, Varlist=Varlist, Bounds=Bounds, Simtime=Simtime) # TODO: Include setting for grabbing simtime
-        dat.reset_index(drop=False, inplace=True)
         if type(dat).__name__ == 'NoneType':
             continue
         
@@ -121,59 +118,52 @@ def extract_param(Filelist: list, Varlist: list, Spat: str, Time: str, Bounds: l
             ltcol = [item for item in ltcol if item.casefold() not in ['sday', 'syr']] # don't check sday or syr for monthly
         elif Time.casefold() == "yearly":
             ltcol = [item for item in ltcol if item.casefold() not in ['sday', 'smth']] # don't check sday or smth for yearly
-            
-        #ltcol = ['index'] + ltcol # include index (row count) as well
                           
         # Loop through varlist and extract series of each variable -> nested dictionary
         for j in range(0,nvar):
             # Check if the dataframe has been initialized for each variable                                                
             if vdict[Varlist[j]].empty:
-                ###vdict[Varlist[j]] = dat[tcol + [Varlist[j]]].rename(columns= {Varlist[j]: Filelist['i1'][i]}, inplace=False).copy() # shallow copy, no nested list                
-                vdict[Varlist[j]] = dat[tcol + [Varlist[j]]].rename(columns= {Varlist[j]: str(Filelist['i0'][i])+"-"+str(Filelist['i1'][i])}, inplace=False).copy() # shallow copy, no nested list
+                vdict[Varlist[j]] = dat[tcol].copy() # shallow copy, no nested list
                 # vdict[Varlist[j]][str(i+1)] = dat[Varlist[j]].copy() # Use if you just want to count iteratively
-                ##vdict[Varlist[j]][Filelist['i1'][i]] = dat[Varlist[j]].copy() # Use if you want to preserve tags extracted from files            
+                vdict[Varlist[j]][Filelist['i1'][i]] = dat[Varlist[j]].copy() # Use if you want to preserve tags extracted from files                              
             else:                
                 # If initialized, compares all column series in ltcol with series in vdict                
-                #TODO: find a way to ensure all columns from dat that are in ltcol are in vdict                
-                
+                #TODO: find a way to ensure all columns from dat that are in ltcol are in vdict
+                                
                 keep = True
-                
-                # 1st check if working dataset and current dataset have same number of rows
-                row_work = vdict[Varlist[j]].shape[0]
-                row_cur = dat.shape[0]                
-                merge_how = 'left' # by default merge to left
-                
-                if row_work == row_cur:
-                    row_max = row_cur
-                elif row_work > row_cur:
-                    row_max = row_cur
-                    wmsg = "Warning: Number of rows in the current dataset is less than the working. Nans will be produced for days without data."
-                    warnings.warn(wmsg)                    
-                else:
-                    row_max = row_work
-                    wmsg = "Warning: Number of rows in the current dataset is greater than the working. Nans will be produced for days without data."
-                    warnings.warn(wmsg)
-                    merge_how = 'right'
-                
-                # 2nd compare all values in rows 0->length of shorter dataframe (if one is shorter) that are identifier columns                    
-                if not vdict[Varlist[j]][ltcol][0:row_max].equals(dat[ltcol][0:row_max]):
-                    wmsg = "Warning: Spatial, temporal, or descriptive identifier columns in the current dataset don't match the working dataset. Skipping this dataset."
-                    warnings.warn(wmsg)
-                    keep = False                
+                for z in range(0,len(ltcol)):                                                            
+                    # 1st check for same number of rows                
+                    if len(vdict[Varlist[j]][ltcol[z]].values) != len(dat[ltcol[z]].values): 
+                        # If the working dictionary has more rows
+                        if len(vdict[Varlist[j]][ltcol[z]].values) > len(dat[ltcol[z]].values):
+                            # Compare data up-to length of shorter dataframe
+                            if not all(vdict[Varlist[j]].iloc[0:(len(dat[ltcol[z]].values + 1)),:][ltcol[z]].values == dat[ltcol[z]].values):
+                                print(f"Error: Values in column {ltcol[z]} do not match.")
+                                keep = False
+                            # If they match, then reduce size of larger dataframe
+                            else:
+                                print(f"Values in column {ltcol[z]} match up to row {dat.shape[0] + 1}. Keepings only these cols.")
+                                vdict[Varlist[j]] = vdict[Varlist[j]].iloc[0:(len(dat[ltcol[z]].values + 1)),:]
+                        # If working dictionary has fewer rows
+                        else:
+                            # Compare data up-to length of shorter dataframe
+                            if not all(vdict[Varlist[j]][ltcol[z]].values == dat.iloc[0:(len(vdict[Varlist[j]][ltcol[z]].values) + 1),:][ltcol[z]].values):
+                                print(f"Error: Values in column {ltcol[z]} do not match.")
+                                keep = False
+                            # If they match, then reduce size of larger dataframe
+                            else:
+                                print(f"Values in column {ltcol[z]} match up to row {vdict[Varlist[j]].shape[0] + 1}. Keepings only these cols.")
+                                dat = dat.iloc[0:(len(vdict[Varlist[j]][ltcol[z]].values) + 1),:]                                
+                                                            
+                                                
+                    elif not all(vdict[Varlist[j]][ltcol[z]].values == dat[ltcol[z]].values):
+                        print(f"Error: Values in column {ltcol[z]} do not match.")
+                        keep = False                                                                        
                 
                 if keep == True:                    
-                    # vdict[Varlist[j]][str(i+1)] = dat[Varlist[j]].copy() # Use if you want to preserve tags extracted from files                                                                      
-                    #dat[Varlist[j]]
-                    #vdict[Varlist[j]][Filelist['i1'][i]] = dat[Varlist[j]].copy() # Use if you want to preserve tags extracted from files                              
-                    
-                    vdict[Varlist[j]] = pd.merge(
-                        vdict[Varlist[j]],
-                        dat[tcol + [Varlist[j]]].rename(columns= {Varlist[j]: str(Filelist['i0'][i])+"-"+str(Filelist['i1'][i])}, inplace=False),                        
-                        ###dat[tcol + [Varlist[j]]].rename(columns= {Varlist[j]: Filelist['i1'][i]}, inplace=False),
-                        how=merge_how
-                        )
+                    # vdict[Varlist[j]][str(i+1)] = dat[Varlist[j]].copy() # Use if you want to preserve tags extracted from files                              
+                    vdict[Varlist[j]][Filelist['i1'][i]] = dat[Varlist[j]].copy() # Use if you want to preserve tags extracted from files                              
                         
-                    
     print("End of extract_param()", '\n'*2)
     return vdict
             
