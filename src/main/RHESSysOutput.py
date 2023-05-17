@@ -18,7 +18,8 @@ import csv
 from typing import Iterable
 import re
 
-class RHESSysOutput(object):  # TODO: use generators when applicable & make it able to read different input file formats and handle large datasets!
+#class RHESSysOutput(Tabular):  # TODO: use generators when applicable & make it able to read different input file formats and handle large datasets!
+class Tabular(object):  # TODO: Create RHESSysOutput Subclass
     """
     `Purpose:` Extract data from RHESSys output file, then manipulates it to the user’s needs. Contains several attributes to specify source location,\n 
         spatial, temporal, and identification fields, as well as what format the imbedded data table is in.
@@ -27,10 +28,6 @@ class RHESSysOutput(object):  # TODO: use generators when applicable & make it a
         source [list]: path to source file of RHESSys output.\n
         source_delim [str]: delimitor character that separates fields in text file.\n
         source_exists [bool]: if True, source file exists.
-        
-
-        # time_scale [str]: specifies temporal scale of data.\n
-        # spat_scale [str]: specifies spatial scale of data.\n
         
         num_fields [int]: number of fields in data.\n
         fields [list]: ordered lists all fields in the data as it appears (left->right). Updates with .getfields().\n
@@ -44,10 +41,10 @@ class RHESSysOutput(object):  # TODO: use generators when applicable & make it a
         req_id_fields [None | iter]: iterable of requested id field names to extract from source. None returns all.\n
         req_var_fields [None | iter]: iterable of requested var field names to extract from source. None returns all.\n
         
-        abs_time_fields [None | iter]: iterable of absent time field names found by xref(self.req_time_fields, self.fields).\n
-        abs_spat_fields [None | iter]: iterable of absent spat field names found by xref(self.req_spat_fields, self.fields).\n
-        abs_id_fields [None | iter]: iterable of absent id field names found by xref(self.req_id_fields, self.fields).\n
-        abs_var_fields [None | iter]: iterable of absent var field names found by xref(self.req_var_fields, self.fields).\n
+        abs_time_fields [None | iter]: iterable of absent time field names found by xref(self.req_time_fields, self._fields).\n
+        abs_spat_fields [None | iter]: iterable of absent spat field names found by xref(self.req_spat_fields, self._fields).\n
+        abs_id_fields [None | iter]: iterable of absent id field names found by xref(self.req_id_fields, self._fields).\n
+        abs_var_fields [None | iter]: iterable of absent var field names found by xref(self.req_var_fields, self._fields).\n
         
         valid_time_fields [list | set]: list of valid field names used to classify temporal scale.\n
         valid_spat_fields [list | set]: list of valid field names used to classify spatial scale.\n
@@ -68,40 +65,27 @@ class RHESSysOutput(object):  # TODO: use generators when applicable & make it a
         join: joins the `RHESSysOutput` object with another.
         stats: performs statistical analysis on `.data`.\n
     """
+    # TODO: RHESSysOutput Sublcass fieldclass_rules
+    _fieldclass_rules = {
+        'temporal': ['cent', 'dec', 'year', 'month', 'week', 'day'] + ['scent', 'sdec', 'syr', 'smth', 'swk', 'sday'],
+        'spatial': ['basinid', 'hillid', 'hillslopeid', 'zoneid', 'patchid', 'stratumid', 'vegid']
+    }
+
     # def __init__(self, source=None, time_scale=None, spat_scale=None):  # TODO: determine how to handle desired time and spatial scales and other target variables
-    def __init__(self, source=None, populate=True, 
-            time_fields=None, spat_fields=None, id_fields=None, var_fields=None):
+    def __init__(self, source: str|None=None, fields: list|None=None, populate: bool=True):
         """Initialization of RHESSysOutput object.""" 
+        
         self.source=[source]
         self.source_delim = None
         self.source_exists = False
         
         # current data fields of .data
-        self.num_fields = None
-        self.fields = []  
-        self.time_fields = []  # TODO: change with .mutate, .aggregate, ...
-        self.spat_fields = []  
-        self.id_fields = []  # (all fields ending in id) - (valid_spat_fields) = (id_fields)
-        self.var_fields = []
-        
-        # Requested data fields to extract from .source
-        self.req_time_fields = time_fields
-        self.req_spat_fields = spat_fields
-        self.req_id_fields = id_fields
-        self.req_var_fields = var_fields
-
-        # Absent data fields from xref(req, src)
-        self.abs_time_fields = None
-        self.abs_spat_fields = None
-        self.abs_id_fields = None
-        self.abs_var_fields = None
-
-        # valid data fields for time/spat scales
-        self.valid_time_fields = ['cent', 'dec', 'year', 'month', 'week', 'day'] + ['scent', 'sdec', 'syr', 'smth', 'swk', 'sday']
-        self.valid_spat_fields = ['basinid', 'hillid', 'hillslopeid', 'zoneid', 'patchid', 'stratumid', 'vegid']  # all end in id
-        
-        # self.time_scale=None  # tuple of desired time_scale fields (used for aggregation)
-        # self.spat_scale=None  # tuple of desired spat_scale fields (used for aggregation)
+        # self._fieldclass_rules = dict()  # valid values for each class  # Defined as Class Attribute instead
+        self._fieldclass = dict()  # field names for different field classes
+        self._fields = []  # all field names
+        # self._fields_req = []  # requested to extract
+        self._fields_abs = []  # absent from request
+        self._num_fields = None
         
         self.data = None
 
@@ -111,7 +95,8 @@ class RHESSysOutput(object):  # TODO: use generators when applicable & make it a
         # Populate
         if populate == True:
             try:
-                self.populate()  # populate the data
+                # self.populate()  # populate the data
+                self.populate(fields=fields)  # cross reference request fields with available fields
             except:  # anything will work
                 print("Failure to populate from source.")
 
@@ -119,6 +104,21 @@ class RHESSysOutput(object):  # TODO: use generators when applicable & make it a
         """Tests if the source file exists."""
         self.source_exists = os.path.exists(self.source[0])
 
+    def addfieldclass(self, name: str, fields: list) -> None:
+        """Adds a fieldname classification to .fieldclass_rules so when .getfields() is called it is classifed.\n
+        name [str]: name of field classification. All unclassified fields become variables.\n
+        fields [list]: list of field names that fall into the class.\n
+        return: None
+        """
+        try:
+            if name.__class__.__name__ != 'str' or fields.__class__.__name__ != 'list':
+                raise ValueError('In addfieldclass(): Either `name` is not a string, `fields` is not a list, or both.')
+            self._fieldclass_rules[name] = fields
+        except Exception as e:
+            print(f'Exception raised during addfieldclass(): {e}.')
+
+        return None
+    
     def getfields(self, source="data") -> None:
         """Function to get field names of RHESSys data.\n
             
@@ -131,7 +131,7 @@ class RHESSysOutput(object):  # TODO: use generators when applicable & make it a
                 `data` will extract from the data attribute of self.\n
                 `source` will extract from the source file of self.\n
         """
-        # First update self.fields
+        # First update self._fields
         # if source == "source" and os.path.exists(self.source[0]): # Get fields from source file
         if source == "source" and self.source_exists: # Get fields from source file
             dialect = dsniff(self.source[0])  # Create a dialect using the non-blank lines
@@ -151,48 +151,49 @@ class RHESSysOutput(object):  # TODO: use generators when applicable & make it a
                 reader = csv.DictReader(srcfile, delimiter=dialect.delimiter, dialect=dialect)  # generator to return each line of csv
                 
                 # Save fields to class attributes, ordered as they appear (L->R) and removing blankspace column names
-                self.fields = [field.strip() for field in reader.fieldnames if field not in ['', ' ', '\t']]  # remove white space elements from fieldnames if applicable
+                self._fields = [field.strip() for field in reader.fieldnames if field not in ['', ' ', '\t']]  # remove white space elements from fieldnames if applicable
 
         elif source == "data": # get field names from self.data()
-            self.fields = self.data.columns.tolist()  # ordered list of fields as they appear (L->R)
+            self._fields = self.data.columns.tolist()  # ordered list of fields as they appear (L->R)
         
-        # Update num_fields and time, spat, id, and var fields
-        self.num_fields = len(self.fields)
-        self.time_fields = {field for field in self.fields if field.casefold() in self.valid_time_fields}
-        self.spat_fields = {field for field in self.fields if field.casefold() in self.valid_spat_fields}
-        self.id_fields = {field for field in [field for field in self.fields if field.endswith('ID')]} - self.time_fields - self.spat_fields
-        self.var_fields = set(self.fields) - self.time_fields - self.spat_fields - self.id_fields
+        # Update fieldclasses
+        self._num_fields = len(self._fields)
+        for cl in self._fieldclass_rules:  # custom classes
+            self._fieldclass[cl] = [field for field in self._fields if field.casefold() in self._fieldclass_rules[cl]]
 
-        # print("fields: ", self.fields, sep="", end="\n\n")
-        # print("time_fields: ", self.time_fields, sep="", end="\n\n")
-        # print("spat_fields: ", self.spat_fields, sep="", end="\n\n")
-        # print("id_fields: ", self.id_fields, sep="", end="\n\n")
-        # print("var_fields: ", self.var_fields, sep="", end="\n\n")
+        # self.id_fields = {field for field in [field for field in self._fields if field.endswith('ID')]} - self.time_fields - self.spat_fields # TODO: if you don't know which fields are ids
+        # self._fieldclass['variable'] = list(set(self._fields) - {field for fieldlist in self._fieldclass_rules.values() for field in fieldlist})  # TODO: there should be no rule for 'variable'
+        self._fieldclass['variable'] = [field for field in self._fields if field.casefold() not in [field.casefold() for fieldlist in self._fieldclass_rules.values() for field in fieldlist]]
+        
+        for cl in self._fieldclass:
+            print(f'{cl}: {self._fieldclass[cl]}')
 
         return None
 
-    def populate(self, *args, **kwargs):  # TODO: determine how to apply filters/ how to load in chunks (for files too large to read into format) with *args and **kwargs
+    def populate(self, fields: list|None):  # TODO: determine how to apply filters/ how to load in chunks (for files too large to read into format) with *args and **kwargs
         
         # Initialize fields from source (and delim)        
         if self.source_exists:
             self.getfields("source")
 
-            # Cross reference field requests (can use self.fields) (position matters)
+            # Cross reference field requests (can use self._fields) (position matters)
             try:
-                rtime, self.abs_time_fields = xref(self.req_time_fields, self.time_fields)
-                rspat, self.abs_spat_fields = xref(self.req_spat_fields, self.spat_fields)
-                rid, self.abs_id_fields  = xref(self.req_id_fields, self.id_fields)
-                rvar, self.abs_var_fields = xref(self.req_var_fields, self.var_fields)
+                if fields != None:
+                    fields_avail, fields_abs = xref(fields, self._fields)
+                else:
+                    # fields_avail, fields_abs = xref(None, self._fields)
+                    fields_avail, fields_abs = self._fields, []
             except Exception as e:
                 print("Exception occured in self.populate() during cross referencing field requests: {e}.")
                 return None
 
-            # Query for index position from self.fields # TODO: Unnecessary with headers
+            # Query for index position from self._fields # TODO: Unnecessary with headers
 
             # Extract fields data from source into pandas dataframe
             try:
                 self.data = pd.read_csv(self.source[0], delimiter=self.source_delim, 
-                usecols=list(rid) + list(rtime) + list(rspat) + list(rvar))
+                usecols=list(fields_avail))
+                self._fields_abs = list(fields_abs)
             except Exception as e:
                 print("Exception occured in self.populate() during data extraction: {e}.")
                 return None
@@ -521,7 +522,7 @@ if __name__ == "__main__":
     # del r3
     # print(r1.data)
     # print()
-    r1 = RHESSysOutput("./test1.daily")
+    r1 = Tabular("./test1.daily")
     # print()
     # print(r1.data)
     # print()

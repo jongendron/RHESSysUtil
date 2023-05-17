@@ -46,10 +46,24 @@ import pandas as pd
 
 # print(a.drop_duplicates(subset=['a', 'b'])[['a', 'b']])
 
-a = 'mean'
-b = ['a', 'b', 'c']
-b = None
+# a = 'mean'
+# b = ['a', 'b', 'c']
+# # b = None
 
-print(bool(a))
-print(bool(b))
-print(bool(a) and bool(b))
+# print(bool(a))
+# print(bool(b))
+# print(bool(a) and bool(b))
+
+# print(a.__class__.__name__)
+# print(b.__class__.__name__)
+
+class MyClass(object):
+    name = "Jon"
+
+    def __init__(self, name: str|None=None):
+        if name != None:
+            self.name = name
+        print(f'Hello {self.name}')
+
+Jon = MyClass()
+Jim = MyClass('Jim')
