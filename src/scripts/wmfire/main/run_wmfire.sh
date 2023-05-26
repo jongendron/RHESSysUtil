@@ -11,7 +11,7 @@ echo $i0 $i1 $wmfire_seed;
 		
 echo; echo "Extracting WMFire Output"; echo;
 cat $flist | wc -l;
-python ${process} "$file" "$file_idx" "$outdir" "$syr" "$mod" "typ" "$i0" "$i1" "$wmfire_seed"
+python ${process} "$file" "$file_idx" "$outdir" "$syr" "$mod" "$typ" "$i0" "$i1" "$wmfire_seed"
 #python ${process} "${i0}_${i1}_${wmfire_seed}" "$file" "$file_idx" "$outdir";
 echo "Complete"
 

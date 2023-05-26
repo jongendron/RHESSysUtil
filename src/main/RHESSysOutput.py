@@ -29,30 +29,14 @@ class Tabular(object):  # TODO: Create RHESSysOutput Subclass
         source_delim [str]: delimitor character that separates fields in text file.\n
         source_exists [bool]: if True, source file exists.
         
-        num_fields [int]: number of fields in data.\n
-        fields [list]: ordered lists all fields in the data as it appears (left->right). Updates with .getfields().\n
-        time_fields [list | set]: list of all fields that describe temporal time scale.\n
-        spat_fields [list | set]: list of all fields taht describe spatial time scale.\n
-        id_fields [list | set]: list of all fields that uniquely idenfity the data.\n
-        var_fields [list | set]: list of all fields that are variables from model output.\n
-        
-        req_time_fields [None | iter]: iterable of requested time field names to extract from source. None returns all.\n
-        req_spat_fields [None | iter]: iterable of requested spat field names to extract from source. None returns all.\n
-        req_id_fields [None | iter]: iterable of requested id field names to extract from source. None returns all.\n
-        req_var_fields [None | iter]: iterable of requested var field names to extract from source. None returns all.\n
-        
-        abs_time_fields [None | iter]: iterable of absent time field names found by xref(self.req_time_fields, self._fields).\n
-        abs_spat_fields [None | iter]: iterable of absent spat field names found by xref(self.req_spat_fields, self._fields).\n
-        abs_id_fields [None | iter]: iterable of absent id field names found by xref(self.req_id_fields, self._fields).\n
-        abs_var_fields [None | iter]: iterable of absent var field names found by xref(self.req_var_fields, self._fields).\n
-        
-        valid_time_fields [list | set]: list of valid field names used to classify temporal scale.\n
-        valid_spat_fields [list | set]: list of valid field names used to classify spatial scale.\n
-
-        stat_format [bool]: specifies whether statistics have been performed on data.\n
-            If false, data is still raw.\n
+        _num_fields [int]: number of fields in data.\n
+        _fields [list]: ordered lists all fields in the data as it appears (left->right). Updates with .getfields().\n
+        _fields_abs [list]: list of fields that were requested during .populate() but that do not exist.\n
+        _fieldclass [dict]: dict containing subsets of _fields grouped by a class key.\n
+        _fieldclass_rules [dict]: dict containing list of fields that fall into each class, _fields are assigned to each class if they exist.\n
 
         data [pd.DataFrame]: RHESSys output data in tabular format.\n
+        stats [Statsobj]: Class instance of Statsobj, used for calculating stats for `data`.
 
     `methods:`
         __init__: initialized the object; Defines initial value of attributes by calling `.getfields()`, `.getscale()` and `.populate()`.\n
@@ -87,7 +71,9 @@ class Tabular(object):  # TODO: Create RHESSysOutput Subclass
         self._fields_abs = []  # absent from request
         self._num_fields = None
         
+        # data
         self.data = None
+        self.stats = None
 
         # check source exists
         self.test_source()
@@ -288,31 +274,19 @@ class Tabular(object):  # TODO: Create RHESSysOutput Subclass
         Should also be able to handle state variables vs fluxes."""
         pass
 
-    def stats(self, *args):  # TODO: write
-        """Performs statistics on data.
-        Returns a dataframe rather than editing data directly"""
+    # def stats(self, *args):  # TODO: write
+    #     """Performs statistics on data.
+    #     Returns a dataframe rather than editing data directly"""
 
-    def getstats(self, *args):  # TODO: write
-        """Performs stats on data using stats() method."""
-        
-
-    def getscales(self):  # not sure if this is necessary yet
-        """Based on available spatial, time, and id fields, updates the time_scale and spat_scale attributes.
-        time scales:\n
-            daily = time_fields contains [day, month, year]
-            monthly = time_fields contains [month, year] but not [daily].\n
-            yearly = time_fields contains [year], but not [month, daily].\n
-            custom = every other combination
-
-        spat scales:\n
-            stratum = spat_fields contains [vegID, stratumID, patchID, zoneID, hillslopeID, and basinID] 
-            patch = spat_fields contains [patchID, zoneID, hillslopeID, basinID], but not [vegID, stratumID]
-            zone = spat_fields contains [zoneID, hillslopeID, basinID], but not [vegID, stratumID, patchID]
-            hillslope = spat_fields contains [hillslopeID, basinID], but not [vegID, stratumID, patchID, zoneID]
-            basin = spat_fields contains [basinID], but not [vegID, stratumID, patchID, zoneID, hillslopeID]
-            custom = every other combination
-        """
-        
+    def getstats(self, group_fields: list):  # TODO: write
+        """Creates Stats object."""
+        if set(group_fields) == set(group_fields) & set(self._fields):
+            self.stats = Statobj(self.data, group_fields=group_fields)
+            return None
+    
+    def dropstats(self):
+        """ Removes stats."""
+        self.stats = None
         return None
     
 
@@ -373,8 +347,14 @@ def dsniff(file: str) -> csv.Dialect:
         return dialect
 
 
-class Statobj(object):
+class Statobj(object):  # TODO: Check that group_fields exist in .data's fields.
     """Methods only allow for one grouping method of the data. For example, if the target groups are basinID, year, then data will be grouped by this only."""
+    # TODO: Check that group_fields exist in .data's fields.
+    # TODO: Add method to change group_fields
+    # TODO: Add method to reset stats
+    # TODO: Add method to select or merge stats into single data
+    # TODO: Add method to update the data based on merged stats (merges the stats into new data and updates .data)
+    # TODO: Double check that self.data is linked to self.stats.data when instance is created in Tabular
     def __init__(self, data: pd.DataFrame, group_fields: list) -> None:
         self.data = data  # pd.dataframe() original dataset -> linked to RHESSysOutput.data or pass data.copy or data.deepcopy() to avoid.
         self.group_fields = group_fields
@@ -391,27 +371,30 @@ class Statobj(object):
 
             return None
         """
-        data_copy = self.data.copy()
-        statname = stat
+        try:
+            data_copy = self.data.copy()
+            statname = stat
 
-        if stat == "pctile":
-             statname= str(pctile) + statname
+            if stat == "pctile":
+                statname= str(pctile) + statname
 
-        # Preliminary statistical operation (if applicable)
-        if bool(int_stat) and bool(int_group_fields):
-            int_group_fields = list(set(self.group_fields) | set(int_group_fields))
-            data_copy = data_copy[int_group_fields + fields]
-            data_copy = getstat(data_copy, groups=int_group_fields, stat=int_stat, pctile=int_pctile)
-            statname = int_stat + "&" + statname
+            # Preliminary statistical operation (if applicable)
+            if bool(int_stat) and bool(int_group_fields):
+                int_group_fields = list(set(self.group_fields) | set(int_group_fields))
+                data_copy = data_copy[int_group_fields + fields]
+                data_copy = getstat(data_copy, groups=int_group_fields, stat=int_stat, pctile=int_pctile)
+                statname = int_stat + "&" + statname
 
-        # Primary statistical operation
-        data_copy = data_copy[self.group_fields + fields]
-        data_copy = getstat(data_copy, groups=self.group_fields, stat=stat, pctile=pctile)
+            # Primary statistical operation
+            data_copy = data_copy[self.group_fields + fields]
+            data_copy = getstat(data_copy, groups=self.group_fields, stat=stat, pctile=pctile)
 
-        if drop_group_fields == True:
-            data_copy = data_copy.drop(self.group_fields, axis=1)
+            if drop_group_fields == True:
+                data_copy = data_copy.drop(self.group_fields, axis=1)
 
-        self.stats[statname] = data_copy
+            self.stats[statname] = data_copy
+        except Exception as e:
+            print(f'Exception raised during self.stats.addstat(): {e}.')
 
         return None
 
@@ -497,7 +480,7 @@ def read_csv_chunks(file, *args):
 if __name__ == "__main__":
 
     # Testing
-    req_var = ['gpsn', 'psn', 'plantc']
+    # req_var = ['gpsn', 'psn', 'plantc']
     # rhessys1 = RHESSysOutput("./test.daily")
     # rhessys1 = RHESSysOutput("./test-hist-fire-1_basin.daily", var_fields=req_var)
     # rhessys1.mutate('sn', '(psn + gpsn)/2')
@@ -518,15 +501,16 @@ if __name__ == "__main__":
     # print(r1.data)
     # print()
     # merge_fields = list(r1.time_fields.copy()) + list(r1.spat_fields.copy())
-    # r1.merge(right=r3, on=merge_fields)  # TODO: Debug
+    # r1.merge(right=r3, on=merge_fields)
     # del r3
     # print(r1.data)
     # print()
+    # r1 = Tabular("./test1.daily", fields=['basinID', 'year', 'var2'])
     r1 = Tabular("./test1.daily")
     # print()
     # print(r1.data)
     # print()
-    r1.stats = Statobj(r1.data, group_fields = ['basinID', 'year'])
+    r1.getstats(['basinID', 'year'])
     print()
     print(f"data:\n{r1.stats.data}\n")
     print(f"group_fields_data:\n{r1.stats.group_fields_data}\n")
@@ -536,4 +520,4 @@ if __name__ == "__main__":
     # r1.stats.addstat('mean', ['var2'], drop_group_fields=False)
     r1.stats.addstat('mean', ['var2'], int_stat='sum', int_group_fields=['month'], drop_group_fields=False)
     for stat in r1.stats.stats:
-        print(f"{stat}:\n{r1.stats.stats[stat]}\n")
+        print(f'{stat}:\n{r1.stats.stats[stat]}')

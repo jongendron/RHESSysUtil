@@ -7,15 +7,16 @@ from dateutil import relativedelta
 #%% Program Settings / variables
 idx_merge = True
 spat_avg = False
-analysis = False
-spat_fri = True
-spat_sum = False
+analysis = True # False
+spat_fri = False # True
+spat_sum = True # False
 
 orig = datetime.strptime('1900-01-01', "%Y-%m-%d")
 ##thresh = 809   # 60 patches (ha)
 thresh = 60   # 60 patches (ha)
 barea = 27871 # 27871 patches (ha) in basin
-chk_size = 27871*20 # 27871 = number of patches | 5 = number of months outputted / yr (fire season)
+# chk_size = 27871*20 # 27871 = number of patches | 5 = number of months outputted / yr (fire season)
+chk_size = barea*24  # 20 = number of months
 
 #%% Command Line Argumenets
 print(sys.argv)
@@ -50,11 +51,12 @@ for chunk in pd.read_csv(file_data, chunksize=chk_size, skiprows=1, header=None,
         chunk = pd.merge(chunk, idx, on=['col','row'], how='left', sort=False)
 
     #tmp2 = chunk.copy()
-    
+    chunk.astype(float)  # make sure everything is float
     chunk.replace([-1], np.nan, inplace=True)
     chunk.replace([np.inf, -np.inf], np.nan, inplace=True)
     chunk.loc[chunk['SpreadIter'] > 0, 'SpreadIter'] = 1 
     chunk.loc[chunk['FailedIter'] > 0, 'FailedIter'] = 1
+    chunk.RelDef = chunk.RelDef.astype(float)
     chunk.loc[chunk.RelDef<0.001, 'RelDef'] = np.nan
     
     #tmp3 = chunk.copy()
@@ -81,7 +83,7 @@ for chunk in pd.read_csv(file_data, chunksize=chk_size, skiprows=1, header=None,
             ).reset_index(drop=False)
 
     if spat_fri == True and idx_merge == True and spat_avg == False and spat_sum == False:
-        chunk = chunk[chunk['SpreadIter'].notnull().values][idx_cols + ['year', 'month', 'SpreadIter']]
+        chunk = chunk[chunk['SpreadIter'].notnull().values][idx_cols + ['year', 'month', 'SpreadIter']]  # only keep rows with a burn
         #tmp4=chunk.copy()
         if chunk.empty == False:
             nchk += 1
@@ -101,7 +103,8 @@ for chunk in pd.read_csv(file_data, chunksize=chk_size, skiprows=1, header=None,
         
     elif spat_sum == True and idx_merge == True and spat_avg == False and spat_fri == False:
         # group by idx_cols and get sum of each col and the count (# occurences)
-        chunk = chunk.drop(['year', 'month', 'col', 'row','SpreadIter', 'FailedIter', 'SpreadProp','PSlope', 'PDef', 'PLoad', 'PWind'], axis=1)
+        # chunk = chunk.drop(['year', 'month', 'col', 'row','SpreadIter', 'FailedIter', 'SpreadProp','PSlope', 'PDef', 'PLoad', 'PWind'], axis=1)
+        chunk = chunk.drop(['year', 'month', 'col', 'row', 'FailedIter', 'SpreadProp','PSlope', 'PDef', 'PLoad', 'PWind'], axis=1)
         cnt = chunk.groupby(idx_cols).size().rename('n').reset_index(drop=False)
         chunk = chunk.groupby(idx_cols).sum().reset_index(drop=False)
         chunk = pd.merge(chunk,cnt, on=idx_cols, how='left')           
@@ -132,7 +135,7 @@ for chunk in pd.read_csv(file_data, chunksize=chk_size, skiprows=1, header=None,
 print("Final Tidying\n\n")
 # Fix script, need to add step to set patches that had no fire to have fri == some value (250 year?, Inf?, 500 yrs?)
 # This involves binding a df of 1 column with pachID wit the final df, and then setting NA's to Inf or some value
-if spat_fri == True and idx_merge == True and spat_avg == False and spat_sum == False:
+if spat_fri == True and idx_merge == True and spat_avg == False and spat_sum == False:  # TODO: This part doesn't work if data doesn't have syr and or smth outputed by RHESSys (assumes dates are not random)
     dat = dat.sort_values(idx_cols + ['mfo'])
     dat['fri'] = dat.groupby(idx_cols)['mfo'].diff(1)
     dat = dat[idx_cols + ['fri']].groupby(idx_cols).mean()/12

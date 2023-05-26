@@ -1,17 +1,18 @@
 #!/bin/bash
 
 # ID (customizable -> corresponds to output directory structure)
-export syr=1991;    # 1991 | 2045 | 2075
-export mod="IPSL"; # CSIRO | IPSL
-export typ="rcp85"; # hist | rcp85
+export syr=1900;    # 1991 | 2045 | 2075
+export mod="nohs"; # CSIRO | IPSL
+export typ="hist"; # hist | rcp85
 export tag="basin";
 
 # Directories
 export calldir=$(pwd);
 export workdir="/weka/data/lab/adam/jonathan.gendron/rhessys/RHESSysUtil/src/scripts/wmfire/main";
-export indir="/data/adam/jonathan.gendron/rhessys/Kamiak/output/gcm/$syr/$mod/brw";
+# export indir="/data/adam/jonathan.gendron/rhessys/Kamiak/output/gcm/$syr/$mod/brw";
+export indir="/data/adam/jonathan.gendron/rhessys/Kamiak/output/hist/$syr/$mod/brw/MeanMoIgn0p02-brw-1900-nohs-hist-1";
 #export outdir=${indir}/storage;
-export outdir="/data/adam/jonathan.gendron/rhessys/Kamiak/output/gcm/storage";
+export outdir="/data/adam/jonathan.gendron/rhessys/Kamiak/output/hist/$syr/$mod/brw/storage";
 cd $workdir
 export runprog="run_wmfire.sh";
 export file_idx="../BRW_col-row-patchID.csv";
@@ -27,8 +28,8 @@ export process_data=1;
 
 # Kamiak Job Settings
 export jobDy=0; # 1 day
-export jobHr=0; # 2 hr
-export jobMn=10;
+export jobHr=4; # 2 hr
+export jobMn=0;
 export jobSc=0;
 export jobPt="adam,kamiak,vcea";
 #export jobPt="kamiak,vcea";
