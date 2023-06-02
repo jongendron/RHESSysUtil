@@ -1,17 +1,23 @@
-#%% Imports
+# Imports
 import sys, os, pathlib
-inc_dir = os.path.abspath("/data/adam/jonathan.gendron/rhessys/RHESSysUtil/src/rhessys_util") # path of rhessys_util
-inc_dir = r"{}".format(inc_dir)
-sys.path.append(inc_dir)
 import numpy as np
 import pandas as pd
+inc_dir = os.path.abspath("/data/adam/jonathan.gendron/rhessys/RHESSysUtil/src/rhessys_util") # path of rhessys_util
+# inc_dir = r"{}".format(inc_dir)
+sys.path.append(inc_dir)
 from util import filelist as fl
 
-#%% Program Settings
+# # Program Settings
+# sys.argv = [
+# 	sys.argv[0],
+# 	"/data/adam/jonathan.gendron/rhessys/Kamiak/output/hist/1900/nohs/brw",
+# 	"/data/adam/jonathan.gendron/rhessys/Kamiak/output/hist/1900/nohs/brw/storage",
+# 	1900,
+# 	"nohs",
+# 	"hist"
+# ]
+
 indir = sys.argv[1]
-#indir = "/data/adam/jonathan.gendron/rhessys/Kamiak/output/gcm/2075/CSIRO/brw"
-#outdir = "/data/adam/jonathan.gendron/rhessys/Kamiak/output/gcm/2075/CSIRO/brw/storage"
-#outdir = os.path.join(indir,"storage")
 outdir = sys.argv[2]
 syr = sys.argv[3]
 mod = sys.argv[4]

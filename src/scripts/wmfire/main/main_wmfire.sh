@@ -20,7 +20,7 @@ export file_idx=$(realpath $file_idx);
 
 # Python Scripts
 export filelist="filelist_wmfire.py"
-export process="process_wmfire.py"
+export process="updated_process_wmfire.py"
 
 # Program Settings
 export create_filelist=1;
@@ -28,7 +28,7 @@ export process_data=1;
 
 # Kamiak Job Settings
 export jobDy=0; # 1 day
-export jobHr=4; # 2 hr
+export jobHr=6; # 2 hr
 export jobMn=0;
 export jobSc=0;
 export jobPt="adam,kamiak,vcea";
@@ -59,6 +59,7 @@ do
 	set_array+=($idx,);
 done;
 
+declare -p set_array
 
 if [[ $process_data == 1 ]];
 then

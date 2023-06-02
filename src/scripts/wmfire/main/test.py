@@ -26,6 +26,60 @@ def sequence_generator(start, len: int=100, on_len: int=5, skip_len: int=7):
                     break
             num += skip_len
 
+# def get_value_from_keypath(dictionary, keypath):
+#     current_dict = dictionary
+#     try:
+#         for key in keypath:
+#             current_dict = current_dict[key]
+#         return current_dict
+#     except (KeyError, TypeError):
+#         return None
+
+# # Example nested dictionary
+# dict1 = {
+#     'a1': {
+#         'a11': {
+#             'a111': 123
+#         }
+#     }
+# }
+
+# # Accessing value using key path tuple
+# keypath = ('a1', 'a11', 'a111')
+# value = get_value_from_keypath(dict1, keypath)
+# print(value)  # Output: 123
+
+# import numpy as np
+
+# l = [np.array([1,2,3]), 1, 'Hello', None]
+# print([n is None for n in l])
+# print(any(l))
+
+class TreeNode:
+    def __init__(self, val=0, left=None, right=None):
+        self.val = val
+        self.left = left
+        self.right = right
+
+tree = TreeNode(10, TreeNode(11), TreeNode(12))
+
+def print_tree(obj, string=''):
+    if isinstance(obj, TreeNode):
+        items = obj.__dict__
+        string += '{'
+        for key, val in items.items():
+            string += key + ": "
+            string += print_tree(val)
+        string = string.rstrip(', ')
+        string += '} '
+    else:
+        string += str(obj) + ', '
+        
+    return string
+
+print(print_tree(tree))
+
+
 # st = 1
 # len = 18
 # on_len = 5
@@ -88,11 +142,30 @@ def sequence_generator(start, len: int=100, on_len: int=5, skip_len: int=7):
 # print(df.groupby('a', sort=False).mean())
 # print(df.size())
 
-global_variable = 10
+# global_variable = 10
 
-def set_global_variable():
-    global global_variable  # Declare the variable as global
-    global_variable = 15    # Modify the global variable
+# def set_global_variable():
+#     global global_variable  # Declare the variable as global
+#     global_variable = 15    # Modify the global variable
 
-set_global_variable()
-print("Updated global variable value:", global_variable)
+# set_global_variable()
+# print("Updated global variable value:", global_variable)
+
+import json
+
+def print_dict_structure(dictionary, indent=0):
+    for key, value in dictionary.items():
+        print('\t' * indent + str(key), end=': ')
+        if isinstance(value, dict):
+            print()
+            print_dict_structure(value, indent + 1)
+        else:
+            print(np.array(value))
+
+
+file = "/weka/data/lab/adam/jonathan.gendron/rhessys/Kamiak/output/test/analysis_WMFire/2_1900_hist_nohs_1_1_100_analysis_WMFire.json"
+
+with open(file, 'r') as file:
+    dat = json.load(file)
+
+print_dict_structure(dat)

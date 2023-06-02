@@ -41,7 +41,7 @@ def simtime(data: pd.DataFrame, start_syr: int, start_smth: int, mth_size: int, 
 
     # TODO: Handle when file is not complete (number of rows is not divisible by mth_size and year_size)
     
-    # 1. Get quotent and remainder (modulus) divmod(numerator, denomenator) for num_yr and num_mth
+    # 1. Get quotent and remainder (modulus) divmod(numerator, denomenator) for num_yr and num_mth  #TODO: Causes crash when chunk size is not multiple of number of years
     num_yr = divmod(nr,yr_size)
     if num_yr[1] > 0:
         raise ValueError('Error calculating syr, either\n(a) Number of rows per simulation year is invalid.\n(b)file is incomplete.\n(c)data is missing.')
@@ -206,13 +206,13 @@ def ftbl_stats(data: pd.DataFrame, nyrs: int, barea: int, eco=True) -> dict:
 
     # density
     bas['density'] = dict()
-    bas['density']['aburn'] = float(round(data['SpreadIter'].sum(), ndigits=2))
-    bas['density']['nfr'] = float(round(nyrs*barea/bas['density']['aburn'], ndigits=2))
+    bas['density']['aburn'] = float(round(data['SpreadIter'].sum(), ndigits=3))
+    bas['density']['nfr'] = float(round(nyrs*barea/bas['density']['aburn'], ndigits=3))
 
     # frequency
     bas['frequency'] = dict()
     bas['frequency']['nfire'] = int(data['SpreadIter'].count())
-    bas['frequency']['pfire'] = float(round(bas['frequency']['nfire']/nyrs, ndigits=2))
+    bas['frequency']['pfire'] = float(round(bas['frequency']['nfire']/nyrs, ndigits=4))
     
     # Get FRI (data should already be sorted in order, not the responsibility of this function)
     data['dt'] = data.smth.diff()/12
@@ -232,9 +232,9 @@ def mm90(data: pd.DataFrame, var: str) -> dict:
     """Calcuates mean, median, and 90th percentile for data and saves to dict."""
 
     mm90 = {
-        'mean': float(round(data[var].mean(), ndigits=2)),
-        'median': float(round(data[var].median(), ndigits=2)),
-        '90pctile': float(round(data[var].quantile(0.9), ndigits=2))
+        'mean': float(round(data[var].mean(), ndigits=3)),
+        'median': float(round(data[var].median(), ndigits=3)),
+        '90pctile': float(round(data[var].quantile(0.9), ndigits=3))
     }
 
     return mm90
@@ -275,6 +275,120 @@ def tidy_json(data: dict, start_str: str="{\n", end_str="}", indent: int=0):
     return string
 
 
+def getlen(obj):
+    if isinstance(obj, str):
+        return 1
+    else:
+        try:
+            return len(obj)
+        except Exception:
+            return 1
+    
+
+def print_dict(pydict: dict, indent=0):
+    """Prints python dictionary pretty."""
+    for key, value in pydict.items():
+        if isinstance(value, dict):
+            print('   '*indent + f"{key}:")
+            print_dict(value, indent=indent+1)
+        else:
+            print('   '*indent + f"{key}: {value}")
+
+
+def dict_struct(pydict: dict, lvl: int=0):
+    """Returns a dictionary detailing the structure of `pydict`.\n
+    The structure defines the class, length, and level of each key-value.\n
+    For key-values that are pd.Dataframes, also contains shape.
+    """
+    struct = dict()
+    for key in pydict:
+        item = pydict[key]
+        subdict = {
+            'lvl': lvl,
+            'class': item.__class__.__name__,
+            'n': getlen(item)
+        }
+
+        if isinstance(item, dict):
+            for subkey, subvalue in dict_struct(item, lvl+1).items():
+                subdict[subkey] = subvalue
+        elif isinstance(item, pd.DataFrame):
+            subdict['shape'] = item.shape
+
+        struct[key] = subdict
+
+    return struct
+
+
+def value_from_keypath(pydict: dict, keypath: list, replacement=None, replace: bool = False):
+    """Accesses a ditionary key-value based on a keypath.
+        keypath [list|tuple]: contains dictionary keys to index `pydict`, read\n
+            from left to right. ('a1', 'a11', 'a111') is synonymous with pydict['a1']['a11']['a111']
+    """
+    current_dict = pydict
+    last_key = keypath[-1]
+
+    try:
+        if len(keypath) > 1:
+            for key in keypath[:-1]:
+                current_dict = current_dict[key]
+            dict_value = current_dict[last_key]
+        else:
+            dict_value = current_dict[last_key]
+    except (KeyError, TypeError):
+        return None
+
+    if replace:
+        current_dict[last_key] = replacement
+        return pydict
+    else:
+        return dict_value
+
+
+def dict_stats(pydicts: list, keypath: list, stat: str='sum'):
+    """Calculates prescriped `stat` for all dictionary key-value pairs in\n
+    `pydicts` specified by `keys`. By default, all keys other than `keys`,\n
+    found in the first dict in `pydicts` are presered (no stats done).\n
+
+        pydict [list]: list of dictionaries to perform statistics on.\n
+        keys [list]: list of keypaths to perform that statistics on in each dict.\n
+            key paths are tuples specifying nested dict layers from Left-> right.\n
+            For example the keypath for ex_dict['key1']['key2']['key3'] = ('key1','key2','key3').\n
+        stat [str]: stat to perform, either `sum`, `mean`, or `count`.\n
+
+    *All dictionaries must have the same structure (via dict_struct) for this to work*.
+    """
+    structs = list()
+    keyvalues = list()
+    for pydict in pydicts:
+        structs.append(dict_struct(pydict))
+        keyvalue = value_from_keypath(pydict, keypath)
+        if not isinstance(keyvalue, np.ndarray) and not keyvalue is None :
+            keyvalue = np.array(keyvalue)
+        keyvalues.append(keyvalue)
+
+    if not all(item == structs[0] for item in structs[1:]):
+        raise ValueError('One or more dictionaries in pydicts have a different structure.')
+    
+    if any(item is None for item in keyvalues):
+        raise ValueError('One ore more keyvalues are `None` and stats can not be performed')
+    
+    # assuming all keyvalues have same class (they should after comparing structs)
+    # then stack them into a single array
+    keyvalues = np.stack(keyvalues)
+
+    # perform the stat
+    if stat == 'count':
+        value = np.tile(keyvalues.shape[0], keyvalues.shape[1])
+    elif stat == 'mean':
+        value = np.mean(keyvalues, axis=0)
+    elif stat == 'sum':
+        value = np.sum(keyvalues, axis=0)
+    else:
+        value == None
+
+    return value
+
 
 if __name__ == '__main__':
 
@@ -288,7 +402,7 @@ if __name__ == '__main__':
 
     # ftbl_stats(dat, 1000, 27300)
     
-    datdict = {
+    datdict1 = {
         'a': {
             'a1': ['one', 'two', 'three'],
             'a2': {
@@ -297,7 +411,7 @@ if __name__ == '__main__':
                 'a23': 'six'
             }
         }, 'b': {
-            'b1': ['seven', 'eight'],
+            'b1': [1, 2, 3],
             'b2': {
                 'b21': 9,
                 'b22': 10
@@ -305,6 +419,40 @@ if __name__ == '__main__':
         }
     }
 
-    tjson = tidy_json(datdict)
+    datdict2 = {
+        'a': {
+            'a1': ['1', '2', '3'],
+            'a2': {
+                'a21': 'six',
+                'a22': 'seventy',
+                'a23': 'quatro'
+            }
+        }, 'b': {
+            'b1': [5, 6 ,7],
+            'b2': {
+                'b21': 2,
+                # 'b22': np.array([30, 20])
+                'b22': 30
+            }
+        }
+    }
 
-    print(tjson)
+    datdict3 = datdict1.copy()
+
+    # datdict3 = value_from_keypath(datdict3, ('b','b1'), replacement=dict_stats([datdict1, datdict2], ('b','b1'), 'sum'), replace=True)
+    val = dict_stats([datdict1, datdict2], ('b','b1'), 'sum')
+    datdict3 = value_from_keypath(datdict3, ('b', 'b1'), replacement=val, replace=True)  # replace in place  # TODO: Beware, this saves replacement as np.ndarray ,...
+    # TODO: so if a subsequent dict_stats is called it may cause problems when comparing structure because orginal was list not np.ndarray.
+    # print(datdict3)
+    print_dict(datdict3)
+    
+    # tjson = tidy_json(datdict)
+    # print(tjson)
+
+    #ds1 = dict_struct(datdict1)
+    #print_dict(ds1)
+
+    # ds2 = dict_struct(datdict2)
+
+    #print(ds1 == ds2)  # two struct dictionaries are the same means same strucutre!
+
