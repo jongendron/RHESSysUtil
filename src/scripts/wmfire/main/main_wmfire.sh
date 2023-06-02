@@ -20,7 +20,7 @@ export file_idx=$(realpath $file_idx);
 
 # Python Scripts
 export filelist="filelist_wmfire.py"
-export process="updated_process_wmfire.py"
+export process="AnalyzeWMFire.py"
 
 # Program Settings
 export create_filelist=1;
